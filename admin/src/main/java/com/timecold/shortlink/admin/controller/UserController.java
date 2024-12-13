@@ -1,6 +1,8 @@
 package com.timecold.shortlink.admin.controller;
 
 import com.timecold.shortlink.admin.common.convention.result.Result;
+import com.timecold.shortlink.admin.common.convention.result.Results;
+import com.timecold.shortlink.admin.common.enums.UserErrorCodeEnum;
 import com.timecold.shortlink.admin.dto.resp.UserRespDTO;
 import com.timecold.shortlink.admin.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +26,9 @@ public class UserController {
     public Result<UserRespDTO> getUserByUsername(@PathVariable("username") String username) {
         UserRespDTO result = userService.getUserByUsername(username);
         if (result == null) {
-            return new Result<UserRespDTO>().setCode("-1").setMessage("用户查询为空");
+            return new Result<UserRespDTO>().setCode(UserErrorCodeEnum.USER_NULL.code()).setMessage(UserErrorCodeEnum.USER_NULL.message());
         } else {
-            return new Result<UserRespDTO>().setCode("0").setData(result);
+            return Results.success(result);
         }
     }
 }
