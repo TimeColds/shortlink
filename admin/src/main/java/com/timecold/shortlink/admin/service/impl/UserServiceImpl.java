@@ -13,6 +13,8 @@ import com.timecold.shortlink.admin.dto.resp.UserRespDTO;
 import com.timecold.shortlink.admin.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBloomFilter;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,10 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements UserService {
 
     private final RBloomFilter<String> userRegisterCachePenetrationBloomFilter;
+
+    private final RedissonClient redissonClient;
+
+    public static final String LOCK_USER_REGISTER_KEY = "short-link:lock_user_register:";
 
     @Override
     public UserRespDTO getUserByUsername(String username) {
@@ -48,10 +54,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         if (!hasUserName(requestParam.getUsername())) {
             throw new ClientException(UserErrorCodeEnum.USER_EXIST);
         }
-        int insert = baseMapper.insert(BeanUtil.toBean(requestParam, UserDO.class));
-        if (insert < 1) {
-            throw new ClientException(UserErrorCodeEnum.USER_SAVE_ERROR);
+        RLock lock = redissonClient.getLock(LOCK_USER_REGISTER_KEY + requestParam.getUsername());
+        try {
+            if (lock.tryLock()) {
+                int insert = baseMapper.insert(BeanUtil.toBean(requestParam, UserDO.class));
+                if (insert < 1) {
+                    throw new ClientException(UserErrorCodeEnum.USER_SAVE_ERROR);
+                }
+                userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
+                return;
+            }
+            throw new ClientException(UserErrorCodeEnum.USER_EXIST);
+        } finally {
+            lock.unlock();
         }
-        userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
+
     }
 }
