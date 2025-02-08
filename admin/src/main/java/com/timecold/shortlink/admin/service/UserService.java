@@ -2,7 +2,10 @@ package com.timecold.shortlink.admin.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.timecold.shortlink.admin.dao.entity.UserDO;
+import com.timecold.shortlink.admin.dto.req.UserLoginReqDTO;
 import com.timecold.shortlink.admin.dto.req.UserRegisterReqDTO;
+import com.timecold.shortlink.admin.dto.req.UserUpdateReqDTO;
+import com.timecold.shortlink.admin.dto.resp.UserLoginRespDTO;
 import com.timecold.shortlink.admin.dto.resp.UserRespDTO;
 
 /**
@@ -30,4 +33,20 @@ public interface UserService extends IService<UserDO> {
      * @param requestParam 注册用户请求参数
      */
     void register(UserRegisterReqDTO requestParam);
+
+    /**
+     * 根据用户名修改用户
+     *
+     * @param requestParam 修改用户请求参数
+     */
+    void update(UserUpdateReqDTO requestParam);
+
+    /**
+     * 用户登录
+     * @param requestParam 用户登录请求参数
+     * @return 用户登录返回参数 Token
+     */
+    UserLoginRespDTO login(UserLoginReqDTO requestParam);
+
+    Boolean checkLogin(String username, String token);
 }

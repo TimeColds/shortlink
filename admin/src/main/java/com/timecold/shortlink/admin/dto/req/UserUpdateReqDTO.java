@@ -1,22 +1,21 @@
-package com.timecold.shortlink.admin.dto.resp;
+package com.timecold.shortlink.admin.dto.req;
 
 import lombok.Data;
 
 /**
- * 用户返回真实参数响应
+ * 用户更新请求参数
  */
 @Data
-public class UserActualRespDTO {
-
-    /**
-     * ID
-     */
-    private Long id;
-
+public class UserUpdateReqDTO {
     /**
      * 用户名
      */
     private String username;
+
+    /**
+     * 密码
+     */
+    private String password;
 
     /**
      * 真实姓名
