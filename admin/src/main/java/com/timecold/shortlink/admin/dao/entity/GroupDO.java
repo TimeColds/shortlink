@@ -1,16 +1,21 @@
 package com.timecold.shortlink.admin.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.timecold.shortlink.admin.common.database.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-
-import java.util.Date;
+import lombok.NoArgsConstructor;
 
 /**
  * 短链接分组实体
  */
 @Data
 @TableName("t_group")
-public class GroupDO {
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class GroupDO extends BaseDO {
     /**
      * 分组标识
      */
@@ -26,18 +31,4 @@ public class GroupDO {
      */
     private String username;
 
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 修改时间
-     */
-    private Date updateTime;
-
-    /**
-     * 删除表示 0:未删除 1:已删除
-     */
-    private Integer delFlag;
 }
