@@ -2,6 +2,7 @@ package com.timecold.shortlink.admin.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.timecold.shortlink.admin.dao.entity.GroupDO;
+import com.timecold.shortlink.admin.dto.req.ShortLinkGroupSortReqDTO;
 import com.timecold.shortlink.admin.dto.req.ShortLinkGroupUpdateReqDTO;
 import com.timecold.shortlink.admin.dto.resp.ShortLinkGroupRespDTO;
 
@@ -37,4 +38,11 @@ public interface GroupService extends IService<GroupDO> {
      * @param gid 删除短链接分组的分组标识
      */
     void deleteGroup(String gid);
+
+    /**
+     * 短链接分组排序
+     *
+     * @param requestParam 短链接分组排序参数
+     */
+    void sortGroup(List<ShortLinkGroupSortReqDTO> requestParam);
 }
