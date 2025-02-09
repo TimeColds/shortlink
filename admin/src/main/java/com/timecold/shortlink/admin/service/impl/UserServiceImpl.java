@@ -122,6 +122,4 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         }
         throw new ClientException("用户未登录");
     }
-
-
 }
