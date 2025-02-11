@@ -10,7 +10,7 @@ public class RBloomFilterConfiguration {
 
 
     /**
-     * 防止用户注册查询数据库的布隆过滤器
+     * 防止短链接创建查询数据库的布隆过滤器
      */
     @Bean
     public RBloomFilter<String> shortURIRegisterCachePenetrationBloomFilter(RedissonClient redissonClient) {
