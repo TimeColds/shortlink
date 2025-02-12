@@ -1,15 +1,15 @@
 package com.timecold.shortlink.project.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.timecold.shortlink.project.common.convention.result.Result;
 import com.timecold.shortlink.project.common.convention.result.Results;
 import com.timecold.shortlink.project.dto.req.ShortLinkCreateReqDTO;
+import com.timecold.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
+import com.timecold.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import com.timecold.shortlink.project.service.ShortLinkService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,5 +24,14 @@ public class ShortLinkController {
     @PostMapping("/create")
     public Result<ShortLinkCreateRespDTO> createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam) {
         return Results.success(shortLinkService.createShortLink(requestParam));
+    }
+
+
+    /**
+     * 分页查询短链接
+     */
+    @GetMapping("/page")
+    public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam) {
+        return Results.success(shortLinkService.pageShortLink(requestParam));
     }
 }
