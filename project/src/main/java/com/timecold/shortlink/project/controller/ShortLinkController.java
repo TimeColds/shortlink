@@ -6,10 +6,13 @@ import com.timecold.shortlink.project.common.convention.result.Results;
 import com.timecold.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import com.timecold.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
+import com.timecold.shortlink.project.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import com.timecold.shortlink.project.service.ShortLinkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,5 +36,10 @@ public class ShortLinkController {
     @GetMapping("/page")
     public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam) {
         return Results.success(shortLinkService.pageShortLink(requestParam));
+    }
+
+    @GetMapping("/count")
+    public Result<List<ShortLinkGroupCountQueryRespDTO>> listGroupShortLinkCount(@RequestParam("requestParam") List<String> requestParam) {
+        return Results.success(shortLinkService.listGroupShortLinkCount(requestParam));
     }
 }
