@@ -16,6 +16,7 @@ import com.timecold.shortlink.admin.dto.req.UserRegisterReqDTO;
 import com.timecold.shortlink.admin.dto.req.UserUpdateReqDTO;
 import com.timecold.shortlink.admin.dto.resp.UserLoginRespDTO;
 import com.timecold.shortlink.admin.dto.resp.UserRespDTO;
+import com.timecold.shortlink.admin.service.GroupService;
 import com.timecold.shortlink.admin.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBloomFilter;
@@ -40,6 +41,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     private final RedissonClient redissonClient;
 
     private final StringRedisTemplate stringRedisTemplate;
+
+    private final GroupService groupService;
 
     public static final String LOCK_USER_REGISTER_KEY = "short-link:lock_user_register:";
 
@@ -78,6 +81,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                     throw new ClientException(UserErrorCodeEnum.USER_EXIST);
                 }
                 userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
+                groupService.saveGroup(requestParam.getUsername(), "默认分组");
                 return;
             }
             throw new ClientException(UserErrorCodeEnum.USER_EXIST);
@@ -88,7 +92,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     @Override
     public void update(UserUpdateReqDTO requestParam) {
-        //TODO 验证当前用户名是否为登录用户
         LambdaUpdateWrapper<UserDO> updateWrapper = Wrappers.lambdaUpdate(UserDO.class)
                 .eq(UserDO::getUsername, requestParam.getUsername());
         baseMapper.update(BeanUtil.toBean(requestParam, UserDO.class),updateWrapper);

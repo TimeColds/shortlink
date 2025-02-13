@@ -3,8 +3,12 @@ package com.timecold.shortlink.admin.remote.service.impl;
 import com.timecold.shortlink.admin.common.convention.result.Result;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
+import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.timecold.shortlink.admin.remote.service.RemoteShortLinkService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -39,11 +43,17 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
     }
 
     @Override
-    public Result listGroupShortLinkCount(List<String> requestParam) {
-        String url = REMOTE_URL + "/count?requestParam={requestParam}";
+    public Result<List<ShortLinkGroupCountQueryRespDTO>> listGroupShortLinkCount(List<String> requestParam) {
+        String url = REMOTE_URL + "/count";
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
-                .queryParam("requestParam", requestParam);
-        String finalUrl = builder.toUriString();
-        return restTemplate.getForObject(finalUrl, Result.class);
+                .queryParam("requestParam", requestParam.toArray());
+        ResponseEntity<Result<List<ShortLinkGroupCountQueryRespDTO>>> response = restTemplate.exchange(
+                builder.toUriString(),
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<>() {
+                }
+        );
+        return response.getBody();
     }
 }
