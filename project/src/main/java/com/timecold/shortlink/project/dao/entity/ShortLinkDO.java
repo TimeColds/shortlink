@@ -19,11 +19,11 @@ import java.util.Date;
 @NoArgsConstructor
 @TableName("t_link")
 public class ShortLinkDO extends BaseDO {
-
     /**
      * id
      */
     private Long id;
+
     /**
      * 域名
      */
@@ -55,22 +55,17 @@ public class ShortLinkDO extends BaseDO {
     private String gid;
 
     /**
-     * 网站标识
-     */
-    private String favicon;
-
-    /**
-     * 启用标识 0:启用 1:未启用
+     * 启用标识 0：启用 1：未启用
      */
     private Integer enableStatus;
 
     /**
-     * 创建类型 0:接口创建 1:控制台创建
+     * 创建类型 0：接口创建 1：控制台创建
      */
     private Integer createdType;
 
     /**
-     * 有效期类型 0:永久有效 1:自定义
+     * 有效期类型 0：永久有效 1：自定义
      */
     private Integer validDateType;
 
@@ -84,4 +79,9 @@ public class ShortLinkDO extends BaseDO {
      */
     @TableField("`describe`")
     private String describe;
+
+    /**
+     * 网站标识
+     */
+    private String favicon;
 }
