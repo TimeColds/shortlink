@@ -3,6 +3,7 @@ package com.timecold.shortlink.admin.remote.service.impl;
 import com.timecold.shortlink.admin.common.convention.result.Result;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
+import com.timecold.shortlink.admin.remote.dto.req.ShortLinkUpdateReqDTO;
 import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.timecold.shortlink.admin.remote.service.RemoteShortLinkService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,12 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
     public Result createShortLink(ShortLinkCreateReqDTO requestParam) {
         String url = REMOTE_URL + "/create";
         return restTemplate.postForObject(url, requestParam, Result.class);
+    }
+
+    @Override
+    public void updateShortLink(ShortLinkUpdateReqDTO requestParam) {
+        String url = REMOTE_URL + "/update";
+        restTemplate.put(url, requestParam);
     }
 
     @Override
