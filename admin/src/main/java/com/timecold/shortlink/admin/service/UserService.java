@@ -23,7 +23,7 @@ public interface UserService extends IService<UserDO> {
     /**
      * 查询用户名是否存在
      * @param username 用户名
-     * @return 用户存在返回 True, 不存在返回 False
+     * @return 用户存在返回 False, 不存在返回 True
      */
     Boolean hasUserName(String username);
 
@@ -49,10 +49,10 @@ public interface UserService extends IService<UserDO> {
     UserLoginRespDTO login(UserLoginReqDTO requestParam);
 
     /**
-     * 检车用户是否登录
+     * 检查用户是否登录
      * @param username 用户名
      * @param token 用户登录 token
-     * @return
+     * @return 已登录返回 True 未登录返回 False
      */
     Boolean checkLogin(String username, String token);
 
