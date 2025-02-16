@@ -41,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -58,9 +59,11 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final StringRedisTemplate redisTemplate;
 
     private final RedissonClient redissonClient;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
+        //TODO 数据校验
         String shortLinkSuffix = generateSuffix(requestParam);
         String fullShortUrl = StrBuilder.create(requestParam.getDomain())
                 .append("/")
@@ -173,14 +176,25 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         String serverName = request.getServerName();
         String fullShortUrl = serverName + "/" + shortUri;
         String linkKey = RedisKeyConstant.GOTO_SHORT_LINK_KEY +fullShortUrl;
+        if (!shortLinkCachePenetrationBloomFilter.contains(fullShortUrl)) {
+            return;
+        }
         String originalLink  = redisTemplate.opsForValue().get(linkKey);
         if (StrUtil.isNotBlank(originalLink)) {
             response.sendRedirect(originalLink);
             return;
         }
+        String gotoIsNullShortLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl);
+        if (gotoIsNullShortLink != null) {
+            return;
+        }
         RLock lock = redissonClient.getLock(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY + fullShortUrl);
         lock.lock();
         try {
+            gotoIsNullShortLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl);
+            if (gotoIsNullShortLink != null) {
+                return;
+            }
             originalLink = redisTemplate.opsForValue().get(linkKey);
             if (StrUtil.isNotBlank(originalLink)) {
                 response.sendRedirect(originalLink);
@@ -190,6 +204,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
             ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(linkGotoQueryWrapper);
             if (shortLinkGotoDO == null) {
+                stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl, "-", 30, TimeUnit.MINUTES);
                 return;
             }
             LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
