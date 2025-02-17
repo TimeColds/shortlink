@@ -95,9 +95,9 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 throw new ServiceException("短链接生成重复");
             }
         }
-        String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY + requestParam.getDomain() + ":" + shortLinkSuffix;
+        String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY + shortLinkSuffix;
         updateUrlInfoCache(gotoKey, shortLinkDO);
-        shortLinkCachePenetrationBloomFilter.add(fullShortUrl);
+        shortLinkCachePenetrationBloomFilter.add(shortLinkSuffix);
         return ShortLinkCreateRespDTO.builder()
                 .fullShortUrl("http://" + shortLinkDO.getFullShortUrl())
                 .originUrl(requestParam.getOriginUrl())
@@ -175,8 +175,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     public void redirectUrl(String shortUri, HttpServletRequest request, HttpServletResponse response) {
         String serverName = request.getServerName();
         String fullShortUrl = serverName + "/" + shortUri;
-        String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY +fullShortUrl;
-        if (!shortLinkCachePenetrationBloomFilter.contains(fullShortUrl)) {
+        String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY + shortUri;
+        if (!shortLinkCachePenetrationBloomFilter.contains(shortUri)) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
@@ -192,14 +192,14 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 return;
             }
         }
-        if (isGotoNullCacheExists(fullShortUrl)) {
+        if (isGotoNullCacheExists(shortUri)) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
         RLock lock = redissonClient.getLock(RedisKeyConstant.SHORT_LINK_GOTO_LOCK_KEY + fullShortUrl);
         try {
             lock.lock();
-            if (isGotoNullCacheExists(fullShortUrl)) {
+            if (isGotoNullCacheExists(shortUri)) {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
@@ -211,13 +211,13 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(Wrappers.lambdaQuery(ShortLinkGotoDO.class)
                     .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl));
             if (shortLinkGotoDO == null) {
-                setGotoNullCache(fullShortUrl);
+                setGotoNullCache(shortUri);
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
             ShortLinkDO shortLinkDO = getValidShortLink(shortLinkGotoDO);
             if (shortLinkDO == null) {
-                setGotoNullCache(fullShortUrl);
+                setGotoNullCache(shortUri);
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
@@ -235,7 +235,6 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         urlInfo.put("originUrl", shortLinkDO.getOriginUrl());
         long expireTimestamp = shortLinkDO.getValidDateType() == 0 ? 0 : shortLinkDO.getValidDate().getTime();
         urlInfo.put("expireTimestamp", String.valueOf(expireTimestamp));
-
         stringRedisTemplate.opsForHash().putAll(gotoKey, urlInfo);
         updateCacheTtl(gotoKey, expireTimestamp);
     }
@@ -255,16 +254,16 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     //设置空值缓存
-    private void setGotoNullCache(String fullShortUrl) {
+    private void setGotoNullCache(String shortUri) {
         stringRedisTemplate.opsForValue().set(
-                RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl,
+                RedisKeyConstant.SHORT_LINK_GOTO_NULL_KEY + shortUri,
                 "-", 30, TimeUnit.MINUTES
         );
     }
 
     //判断空值缓存是否存在
-    private boolean isGotoNullCacheExists(String fullShortUrl) {
-        return stringRedisTemplate.hasKey(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl);
+    private boolean isGotoNullCacheExists(String shortUri) {
+        return stringRedisTemplate.hasKey(RedisKeyConstant.SHORT_LINK_GOTO_NULL_KEY + shortUri);
     }
 
     //更新缓存TTL
@@ -282,9 +281,9 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 throw new ServiceException("短链接创建频繁，请稍后再试");
             }
             String originUrl = requestParam.getOriginUrl();
-            originUrl += System.currentTimeMillis();
+            originUrl += UUID.randomUUID().toString();
             shortUri = HashUtil.hashToBase62(originUrl);
-            if (!shortLinkCachePenetrationBloomFilter.contains(requestParam.getDomain() + "/" + shortUri)) {
+            if (!shortLinkCachePenetrationBloomFilter.contains(shortUri)) {
                 break;
             }
             customGenerateCount++;
@@ -292,7 +291,6 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         return shortUri;
     }
 }
-
 
 
 
