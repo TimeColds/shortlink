@@ -2,7 +2,6 @@ package com.timecold.shortlink.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.StrBuilder;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -10,6 +9,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.timecold.shortlink.project.common.constant.RedisKeyConstant;
+import com.timecold.shortlink.project.common.constant.ShortLinkConstant;
 import com.timecold.shortlink.project.common.convention.exception.ClientException;
 import com.timecold.shortlink.project.common.convention.exception.ServiceException;
 import com.timecold.shortlink.project.common.enums.VailDateTypeEnum;
@@ -38,10 +38,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+
 
 
 /**
@@ -56,9 +55,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     private final ShortLinkGotoMapper shortLinkGotoMapper;
 
-    private final StringRedisTemplate redisTemplate;
-
     private final RedissonClient redissonClient;
+
     private final StringRedisTemplate stringRedisTemplate;
 
     @Override
@@ -97,6 +95,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 throw new ServiceException("短链接生成重复");
             }
         }
+        String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY + requestParam.getDomain() + ":" + shortLinkSuffix;
+        updateUrlInfoCache(gotoKey, shortLinkDO);
         shortLinkCachePenetrationBloomFilter.add(fullShortUrl);
         return ShortLinkCreateRespDTO.builder()
                 .fullShortUrl("http://" + shortLinkDO.getFullShortUrl())
@@ -175,52 +175,103 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     public void redirectUrl(String shortUri, HttpServletRequest request, HttpServletResponse response) {
         String serverName = request.getServerName();
         String fullShortUrl = serverName + "/" + shortUri;
-        String linkKey = RedisKeyConstant.GOTO_SHORT_LINK_KEY +fullShortUrl;
+        String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY +fullShortUrl;
         if (!shortLinkCachePenetrationBloomFilter.contains(fullShortUrl)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        String originalLink  = redisTemplate.opsForValue().get(linkKey);
-        if (StrUtil.isNotBlank(originalLink)) {
-            response.sendRedirect(originalLink);
+        Map<Object, Object> urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
+        if (!urlInfo.isEmpty()) {
+            long expireTimestamp = Long.parseLong((String) urlInfo.get("expireTimestamp"));
+            long remaining = expireTimestamp - System.currentTimeMillis();
+            if (expireTimestamp > 0 && remaining < 0) {
+                stringRedisTemplate.delete(gotoKey);
+            } else {
+                response.sendRedirect((String)urlInfo.get("originUrl"));
+                updateCacheTtl(gotoKey, expireTimestamp);
+                return;
+            }
+        }
+        if (isGotoNullCacheExists(fullShortUrl)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        String gotoIsNullShortLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl);
-        if (gotoIsNullShortLink != null) {
-            return;
-        }
-        RLock lock = redissonClient.getLock(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY + fullShortUrl);
-        lock.lock();
+        RLock lock = redissonClient.getLock(RedisKeyConstant.SHORT_LINK_GOTO_LOCK_KEY + fullShortUrl);
         try {
-            gotoIsNullShortLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl);
-            if (gotoIsNullShortLink != null) {
+            lock.lock();
+            if (isGotoNullCacheExists(fullShortUrl)) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
-            originalLink = redisTemplate.opsForValue().get(linkKey);
-            if (StrUtil.isNotBlank(originalLink)) {
-                response.sendRedirect(originalLink);
+            urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
+            if (!urlInfo.isEmpty()) {
+                response.sendRedirect((String)urlInfo.get("originUrl"));
                 return;
             }
-            LambdaQueryWrapper<ShortLinkGotoDO> linkGotoQueryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
-                    .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
-            ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(linkGotoQueryWrapper);
+            ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+                    .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl));
             if (shortLinkGotoDO == null) {
-                stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl, "-", 30, TimeUnit.MINUTES);
+                setGotoNullCache(fullShortUrl);
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
-            LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
-                    .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid())
-                    .eq(ShortLinkDO::getFullShortUrl, shortLinkGotoDO.getFullShortUrl())
-                    .eq(ShortLinkDO::getEnableStatus, 0)
-                    .eq(ShortLinkDO::getDelFlag, 0);
-            ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
-            if (shortLinkDO != null) {
-                redisTemplate.opsForValue().set(linkKey, shortLinkDO.getOriginUrl());
-                response.sendRedirect(shortLinkDO.getOriginUrl());
+            ShortLinkDO shortLinkDO = getValidShortLink(shortLinkGotoDO);
+            if (shortLinkDO == null) {
+                setGotoNullCache(fullShortUrl);
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
             }
+
+            response.sendRedirect(shortLinkDO.getOriginUrl());
+            updateUrlInfoCache(gotoKey, shortLinkDO);
         } finally {
             lock.unlock();
         }
+    }
 
+    //更新URL信息到缓存
+    private void updateUrlInfoCache(String gotoKey, ShortLinkDO shortLinkDO) {
+        Map<String, String> urlInfo = new HashMap<>();
+        urlInfo.put("originUrl", shortLinkDO.getOriginUrl());
+        long expireTimestamp = shortLinkDO.getValidDateType() == 0 ? 0 : shortLinkDO.getValidDate().getTime();
+        urlInfo.put("expireTimestamp", String.valueOf(expireTimestamp));
+
+        stringRedisTemplate.opsForHash().putAll(gotoKey, urlInfo);
+        updateCacheTtl(gotoKey, expireTimestamp);
+    }
+
+    //查询有效ShortLink
+    private ShortLinkDO getValidShortLink(ShortLinkGotoDO shortLinkGotoDO) {
+        ShortLinkDO shortLinkDO = baseMapper.selectOne(Wrappers.lambdaQuery(ShortLinkDO.class)
+                .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid())
+                .eq(ShortLinkDO::getFullShortUrl, shortLinkGotoDO.getFullShortUrl())
+                .eq(ShortLinkDO::getEnableStatus, 0)
+                .eq(ShortLinkDO::getDelFlag, 0));
+        if (shortLinkDO == null) return null;
+        if (shortLinkDO.getValidDateType() == 1 && shortLinkDO.getValidDate().before(new Date())) {
+            return null;
+        }
+        return shortLinkDO;
+    }
+
+    //设置空值缓存
+    private void setGotoNullCache(String fullShortUrl) {
+        stringRedisTemplate.opsForValue().set(
+                RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl,
+                "-", 30, TimeUnit.MINUTES
+        );
+    }
+
+    //判断空值缓存是否存在
+    private boolean isGotoNullCacheExists(String fullShortUrl) {
+        return stringRedisTemplate.hasKey(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl);
+    }
+
+    //更新缓存TTL
+    private void updateCacheTtl(String gotoKey, long expireTimestamp) {
+        long ttl = expireTimestamp == 0 ? ShortLinkConstant.DEFAULT_CACHE_TTL :
+                Math.min(expireTimestamp - System.currentTimeMillis(), ShortLinkConstant.DEFAULT_CACHE_TTL);
+        stringRedisTemplate.expire(gotoKey, ttl, TimeUnit.MILLISECONDS);
     }
 
     private String generateSuffix(ShortLinkCreateReqDTO requestParam) {
@@ -238,7 +289,6 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             }
             customGenerateCount++;
         }
-
         return shortUri;
     }
 }
