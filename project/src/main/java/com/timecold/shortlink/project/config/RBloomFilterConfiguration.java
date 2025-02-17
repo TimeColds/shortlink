@@ -14,7 +14,7 @@ public class RBloomFilterConfiguration {
      */
     @Bean
     public RBloomFilter<String> shortURIRegisterCachePenetrationBloomFilter(RedissonClient redissonClient) {
-        RBloomFilter<String> cachePenetrationBloomFilter = redissonClient.getBloomFilter("userRegisterCachePenetrationBloomFilter");
+        RBloomFilter<String> cachePenetrationBloomFilter = redissonClient.getBloomFilter("shortURIRegisterCachePenetrationBloomFilter");
         cachePenetrationBloomFilter.tryInit(100000000L, 0.001);
         return cachePenetrationBloomFilter;
     }
