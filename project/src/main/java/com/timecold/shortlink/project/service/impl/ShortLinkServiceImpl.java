@@ -30,6 +30,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -37,7 +40,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -59,6 +64,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     private final StringRedisTemplate stringRedisTemplate;
 
+    private final RestTemplate restTemplate;
+
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
         //TODO 数据校验
@@ -75,6 +82,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .validDateType(requestParam.getValidDateType())
                 .validDate(requestParam.getValidDate())
                 .describe(requestParam.getDescribe())
+                .favicon(getFavicon(requestParam.getOriginUrl()))
                 .shortUri(shortLinkSuffix)
                 .enableStatus(0)
                 .fullShortUrl(fullShortUrl)
@@ -229,6 +237,17 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
     }
 
+    @Override
+    public String getTitleByUrl(String url) {
+            String html = fetchHtml(url);
+            if (html != null) {
+                Document doc = Jsoup.parse(html);
+                return doc.title();
+            } else {
+                return "";
+            }
+    }
+
     //更新URL信息到缓存
     private void updateUrlInfoCache(String gotoKey, ShortLinkDO shortLinkDO) {
         Map<String, String> urlInfo = new HashMap<>();
@@ -289,6 +308,22 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             customGenerateCount++;
         }
         return shortUri;
+    }
+
+    private String getFavicon(String originUrl) {
+            String html = fetchHtml(originUrl);
+            Document doc = Jsoup.parse(html, originUrl);
+            Elements elements = doc.select("link[rel~=icon]");
+            if (!elements.isEmpty()) {
+                return Objects.requireNonNull(elements.first()).absUrl("href");
+            } else {
+                // 回退到默认favicon.ico
+                return URI.create(originUrl).resolve("/favicon.ico").toString();
+            }
+    }
+
+    private String fetchHtml(String originUrl) {
+        return restTemplate.getForObject(originUrl, String.class);
     }
 }
 

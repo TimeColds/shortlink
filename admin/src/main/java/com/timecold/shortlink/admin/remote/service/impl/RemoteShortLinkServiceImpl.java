@@ -22,26 +22,24 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
 
     private final RestTemplate restTemplate;
 
-
     public static final String REMOTE_URL = "http://localhost:8001/api/short-link/v1";
-
 
     @Override
     public Result createShortLink(ShortLinkCreateReqDTO requestParam) {
-        String url = REMOTE_URL + "/create";
-        return restTemplate.postForObject(url, requestParam, Result.class);
+        String remoteUrl = REMOTE_URL + "/create";
+        return restTemplate.postForObject(remoteUrl, requestParam, Result.class);
     }
 
     @Override
     public void updateShortLink(ShortLinkUpdateReqDTO requestParam) {
-        String url = REMOTE_URL + "/update";
-        restTemplate.put(url, requestParam);
+        String remoteUrl = REMOTE_URL + "/update";
+        restTemplate.put(remoteUrl, requestParam);
     }
 
     @Override
     public Result pageShortLink(ShortLinkPageReqDTO requestParam) {
-        String url = REMOTE_URL + "/page";
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
+        String remoteUrl = REMOTE_URL + "/page";
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(remoteUrl)
                 .queryParam("gid", requestParam.getGid())  // 添加其他参数
                 .queryParam("size", requestParam.getSize())
                 .queryParam("current", requestParam.getCurrent());
@@ -51,16 +49,24 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
 
     @Override
     public Result<List<ShortLinkGroupCountQueryRespDTO>> listGroupShortLinkCount(List<String> requestParam) {
-        String url = REMOTE_URL + "/count";
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
-                .queryParam("requestParam", requestParam.toArray());
+        String remoteUrl = REMOTE_URL + "/count";
+        String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
+                .queryParam("requestParam", requestParam.toArray()).toUriString();
         ResponseEntity<Result<List<ShortLinkGroupCountQueryRespDTO>>> response = restTemplate.exchange(
-                builder.toUriString(),
+                finalUrl,
                 HttpMethod.GET,
                 null,
                 new ParameterizedTypeReference<>() {
                 }
         );
         return response.getBody();
+    }
+
+    @Override
+    public String getTitleByUrl(String url) {
+        String remoteUrl = REMOTE_URL + "/title";
+        String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
+                .queryParam("url", url).toUriString();
+        return restTemplate.getForObject(finalUrl, String.class);
     }
 }

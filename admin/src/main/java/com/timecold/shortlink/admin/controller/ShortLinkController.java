@@ -45,5 +45,11 @@ public class ShortLinkController {
         return remoteShortLinkService.pageShortLink(requestParam);
     }
 
-
+    /**
+     * 根据 URL 获取标题
+     */
+    @GetMapping("/title")
+    public Result<String> getTitleByUrl(@RequestParam("url") String url) {
+        return Results.success(remoteShortLinkService.getTitleByUrl(url));
+    }
 }
