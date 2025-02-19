@@ -1,6 +1,7 @@
 package com.timecold.shortlink.admin.remote.service.impl;
 
 import com.timecold.shortlink.admin.common.convention.result.Result;
+import com.timecold.shortlink.admin.remote.dto.req.RecycleBinArchiveReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkUpdateReqDTO;
@@ -68,5 +69,11 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
         String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
                 .queryParam("url", url).toUriString();
         return restTemplate.getForObject(finalUrl, String.class);
+    }
+
+    @Override
+    public void archiveShortLink(RecycleBinArchiveReqDTO requestParam) {
+        String remoteUrl = REMOTE_URL + "/archive";
+        restTemplate.put(remoteUrl, requestParam);
     }
 }

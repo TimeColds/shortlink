@@ -2,6 +2,7 @@ package com.timecold.shortlink.admin.remote.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.timecold.shortlink.admin.common.convention.result.Result;
+import com.timecold.shortlink.admin.remote.dto.req.RecycleBinArchiveReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkUpdateReqDTO;
@@ -52,4 +53,11 @@ public interface RemoteShortLinkService {
      * @return 网站标题
      */
     String getTitleByUrl(String url);
+
+    /**
+     *    归档短链接
+     *
+     * @param requestParam 归档短链接请求参数
+     */
+    void archiveShortLink(RecycleBinArchiveReqDTO requestParam);
 }
