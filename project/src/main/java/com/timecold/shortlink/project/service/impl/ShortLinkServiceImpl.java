@@ -177,7 +177,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         String fullShortUrl = serverName + "/" + shortUri;
         String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY + shortUri;
         if (!shortLinkCachePenetrationBloomFilter.contains(shortUri)) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            response.sendRedirect("/error/notfound.html");
             return;
         }
         Map<Object, Object> urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
@@ -193,14 +193,14 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             }
         }
         if (isGotoNullCacheExists(shortUri)) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            response.sendRedirect("/error/notfound.html");
             return;
         }
         RLock lock = redissonClient.getLock(RedisKeyConstant.SHORT_LINK_GOTO_LOCK_KEY + fullShortUrl);
         try {
             lock.lock();
             if (isGotoNullCacheExists(shortUri)) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                response.sendRedirect("/error/notfound.html");
                 return;
             }
             urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
@@ -212,13 +212,13 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl));
             if (shortLinkGotoDO == null) {
                 setGotoNullCache(shortUri);
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                response.sendRedirect("/error/notfound.html");
                 return;
             }
             ShortLinkDO shortLinkDO = getValidShortLink(shortLinkGotoDO);
             if (shortLinkDO == null) {
                 setGotoNullCache(shortUri);
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                response.sendRedirect("/error/notfound.html");
                 return;
             }
 
