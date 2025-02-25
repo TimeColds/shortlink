@@ -23,17 +23,12 @@ public class ShortLinkCreateReqDTO {
     /**
      * 分组标识
      */
-    private String gid;
+    private Long gid;
 
     /**
-     * 创建类型 0：接口创建 1：控制台创建
+     * 用户id
      */
-    private Integer createdType;
-
-    /**
-     * 有效期类型 0：永久有效 1：自定义
-     */
-    private Integer validDateType;
+    private Long uid;
 
     /**
      * 有效期

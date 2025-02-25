@@ -1,6 +1,6 @@
 package com.timecold.shortlink.admin.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.timecold.shortlink.admin.common.convention.result.Result;
 import com.timecold.shortlink.admin.common.convention.result.Results;
 import com.timecold.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
@@ -25,7 +25,7 @@ public class ShortLinkController {
      */
     @PostMapping("/create")
     public Result<ShortLinkCreateRespDTO> createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam) {
-        return remoteShortLinkService.createShortLink(requestParam);
+        return Results.success(remoteShortLinkService.createShortLink(requestParam));
     }
 
     /**
@@ -41,8 +41,8 @@ public class ShortLinkController {
      * 分页查询短链接
      */
     @GetMapping("/page")
-    public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam) {
-        return remoteShortLinkService.pageShortLink(requestParam);
+    public Result<Page<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam) {
+        return Results.success(remoteShortLinkService.pageShortLink(requestParam));
     }
 
     /**

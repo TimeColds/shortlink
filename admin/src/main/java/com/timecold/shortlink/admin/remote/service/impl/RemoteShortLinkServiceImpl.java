@@ -1,16 +1,18 @@
 package com.timecold.shortlink.admin.remote.service.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.timecold.shortlink.admin.biz.user.UserContext;
+import com.timecold.shortlink.admin.common.convention.exception.ServiceException;
 import com.timecold.shortlink.admin.common.convention.result.Result;
-import com.timecold.shortlink.admin.remote.dto.req.RecycleBinArchiveReqDTO;
-import com.timecold.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
-import com.timecold.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
-import com.timecold.shortlink.admin.remote.dto.req.ShortLinkUpdateReqDTO;
+import com.timecold.shortlink.admin.remote.dto.req.*;
+import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkCreateRespDTO;
 import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkGroupCountQueryRespDTO;
+import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
 import com.timecold.shortlink.admin.remote.service.RemoteShortLinkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -23,44 +25,64 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
 
     private final RestTemplate restTemplate;
 
-    public static final String REMOTE_URL = "http://localhost:8001/api/short-link/v1";
+    public static final String REMOTE_URL = "http://localhost:8001/api/v1/short_link";
 
     @Override
-    public Result createShortLink(ShortLinkCreateReqDTO requestParam) {
+    public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
         String remoteUrl = REMOTE_URL + "/create";
-        return restTemplate.postForObject(remoteUrl, requestParam, Result.class);
+        requestParam.setUid(UserContext.getUserId());
+        Result<ShortLinkCreateRespDTO> result = restTemplate.exchange(remoteUrl,
+                HttpMethod.POST,
+                new HttpEntity<>(requestParam),
+                new ParameterizedTypeReference<Result<ShortLinkCreateRespDTO>>() {
+                }).getBody();
+        if (result == null) {
+            throw new ServiceException("创建短链失败");
+        }
+        return result.getData();
     }
 
     @Override
     public void updateShortLink(ShortLinkUpdateReqDTO requestParam) {
         String remoteUrl = REMOTE_URL + "/update";
+        requestParam.setUid(UserContext.getUserId());
         restTemplate.put(remoteUrl, requestParam);
     }
 
     @Override
-    public Result pageShortLink(ShortLinkPageReqDTO requestParam) {
+    public Page<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO requestParam) {
         String remoteUrl = REMOTE_URL + "/page";
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(remoteUrl)
-                .queryParam("gid", requestParam.getGid())  // 添加其他参数
+        String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
+                .queryParam("gid", requestParam.getGid())
                 .queryParam("size", requestParam.getSize())
-                .queryParam("current", requestParam.getCurrent());
-        String finalUrl = builder.toUriString();
-        return restTemplate.getForObject(finalUrl, Result.class);
+                .queryParam("current", requestParam.getCurrent()).toUriString();
+        Result<Page<ShortLinkPageRespDTO>> result = restTemplate.exchange(finalUrl,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Result<Page<ShortLinkPageRespDTO>>>() {
+                }).getBody();
+        if (result == null) {
+            throw new ServiceException("查询短链失败");
+        }
+        return result.getData();
     }
 
     @Override
-    public Result<List<ShortLinkGroupCountQueryRespDTO>> listGroupShortLinkCount(List<String> requestParam) {
+    public List<ShortLinkGroupCountQueryRespDTO> listGroupShortLinkCount() {
         String remoteUrl = REMOTE_URL + "/count";
         String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
-                .queryParam("requestParam", requestParam.toArray()).toUriString();
-        ResponseEntity<Result<List<ShortLinkGroupCountQueryRespDTO>>> response = restTemplate.exchange(
+                .queryParam("requestParam", UserContext.getUserId()).toUriString();
+        Result<List<ShortLinkGroupCountQueryRespDTO>> result = restTemplate.exchange(
                 finalUrl,
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<>() {
+                new ParameterizedTypeReference<Result<List<ShortLinkGroupCountQueryRespDTO>>>() {
                 }
-        );
-        return response.getBody();
+        ).getBody();
+        if (result == null) {
+            throw new ServiceException("查询短链接数量失败");
+        }
+        return result.getData();
     }
 
     @Override
@@ -68,7 +90,11 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
         String remoteUrl = REMOTE_URL + "/title";
         String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
                 .queryParam("url", url).toUriString();
-        return restTemplate.getForObject(finalUrl, String.class);
+        Result<?> result = restTemplate.getForObject(finalUrl, Result.class);
+        if (result == null) {
+            throw new ServiceException("获取标题失败");
+        }
+        return (String) result.getData();
     }
 
     @Override

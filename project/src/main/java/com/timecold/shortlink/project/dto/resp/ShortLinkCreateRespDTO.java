@@ -18,7 +18,7 @@ public class ShortLinkCreateRespDTO {
     /**
      * 分组信息
      */
-    private String gid;
+    private Long gid;
 
     /**
      * 原始链接

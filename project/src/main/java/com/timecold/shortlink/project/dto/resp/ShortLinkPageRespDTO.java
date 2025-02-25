@@ -24,7 +24,7 @@ public class ShortLinkPageRespDTO {
     /**
      * 短链接
      */
-    private String shortUri;
+    private String shortUrl;
 
     /**
      * 完整短链接
@@ -39,12 +39,12 @@ public class ShortLinkPageRespDTO {
     /**
      * 分组标识
      */
-    private String gid;
+    private Long gid;
 
     /**
-     * 有效期类型 0：永久有效 1：自定义
+     * 用户id
      */
-    private Integer validDateType;
+    private Long uid;
 
     /**
      * 有效期

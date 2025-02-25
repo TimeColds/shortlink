@@ -1,6 +1,6 @@
 package com.timecold.shortlink.project.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.timecold.shortlink.project.common.convention.result.Result;
 import com.timecold.shortlink.project.common.convention.result.Results;
 import com.timecold.shortlink.project.dto.req.ShortLinkCreateReqDTO;
@@ -44,7 +44,7 @@ public class ShortLinkController {
      * 分页查询短链接
      */
     @GetMapping("/page")
-    public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam) {
+    public Result<Page<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam) {
         return Results.success(shortLinkService.pageShortLink(requestParam));
     }
 
@@ -52,15 +52,15 @@ public class ShortLinkController {
      * 查询短链接分组内数量
      */
     @GetMapping("/count")
-    public Result<List<ShortLinkGroupCountQueryRespDTO>> listGroupShortLinkCount(@RequestParam("requestParam") List<String> requestParam) {
-        return Results.success(shortLinkService.listGroupShortLinkCount(requestParam));
+    public Result<List<ShortLinkGroupCountQueryRespDTO>> listGroupShortLinkCount(@RequestParam("requestParam") Long uid) {
+        return Results.success(shortLinkService.listGroupShortLinkCount(uid));
     }
 
     /**
      * 根据 URL 获取对应网站的标题
      */
     @GetMapping("/title")
-    public String getTitleByUrl(@RequestParam("url") String url) {
-        return shortLinkService.getTitleByUrl(url);
+    public Result<String> getTitleByUrl(@RequestParam("url") String url) {
+        return Results.success(shortLinkService.getTitleByUrl(url));
     }
 }

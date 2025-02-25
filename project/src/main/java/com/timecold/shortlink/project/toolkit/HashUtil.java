@@ -1,6 +1,9 @@
 package com.timecold.shortlink.project.toolkit;
 
-import cn.hutool.core.lang.hash.MurmurHash;
+
+import com.google.common.hash.Hashing;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * HASH 工具类
@@ -26,8 +29,8 @@ public class HashUtil {
     }
 
     public static String hashToBase62(String str) {
-        int i = MurmurHash.hash32(str);
-        long num = i < 0 ? Integer.MAX_VALUE - (long) i : i;
+        int hash = Hashing.murmur3_32_fixed().hashString(str, StandardCharsets.UTF_8).asInt();
+        long num = hash < 0 ? Integer.MAX_VALUE - (long) hash : hash;
         return convertDecToBase62(num);
     }
 }

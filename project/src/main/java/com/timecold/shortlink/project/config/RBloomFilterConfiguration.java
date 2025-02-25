@@ -10,11 +10,11 @@ public class RBloomFilterConfiguration {
 
 
     /**
-     * 防止短链接创建查询数据库的布隆过滤器
+     * 防止短链接查询数据库的布隆过滤器
      */
     @Bean
-    public RBloomFilter<String> shortURIRegisterCachePenetrationBloomFilter(RedissonClient redissonClient) {
-        RBloomFilter<String> cachePenetrationBloomFilter = redissonClient.getBloomFilter("shortURIRegisterCachePenetrationBloomFilter");
+    public RBloomFilter<String> shortUrlRegisterCachePenetrationBloomFilter(RedissonClient redissonClient) {
+        RBloomFilter<String> cachePenetrationBloomFilter = redissonClient.getBloomFilter("shortUrlCachePenetrationBloomFilter");
         cachePenetrationBloomFilter.tryInit(100000000L, 0.001);
         return cachePenetrationBloomFilter;
     }

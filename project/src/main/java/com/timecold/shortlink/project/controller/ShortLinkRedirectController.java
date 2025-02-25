@@ -1,7 +1,6 @@
 package com.timecold.shortlink.project.controller;
 
 import com.timecold.shortlink.project.service.ShortLinkService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +18,7 @@ public class ShortLinkRedirectController {
      * 短链接跳转
      */
     @GetMapping(value = "/{short-uri}")
-    public void redirectUrl(@PathVariable("short-uri") String shortUri, HttpServletRequest request, HttpServletResponse response) {
-        shortLinkService.redirectUrl(shortUri, request, response);
+    public void redirectUrl(@PathVariable("short-uri") String shortUrl, HttpServletResponse response) {
+        shortLinkService.redirectUrl(shortUrl, response);
     }
 }
