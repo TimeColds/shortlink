@@ -21,7 +21,7 @@ public class UserConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(userTransmitInterceptor)
-                .addPathPatterns("/**") // 拦截所有路径
-                .excludePathPatterns("/static/**"); // 排除静态资源
+                .addPathPatterns("/**")
+                .excludePathPatterns("/static/**");
     }
 }

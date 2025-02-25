@@ -11,9 +11,9 @@ import lombok.Data;
 public class UserRespDTO {
 
     /**
-     * ID
+     * 用户ID
      */
-    private Long id;
+    private Long uid;
 
     /**
      * 用户名

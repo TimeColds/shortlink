@@ -1,13 +1,15 @@
 package com.timecold.shortlink.admin.biz.user;
 
-import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.timecold.shortlink.admin.common.constant.RedisKeyConstant;
 import com.timecold.shortlink.admin.common.convention.exception.ClientException;
 import com.timecold.shortlink.admin.common.enums.UserErrorCodeEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -24,12 +26,14 @@ public class UserTransmitInterceptor implements HandlerInterceptor {
 
     private final StringRedisTemplate stringRedisTemplate;
 
+    private final ObjectMapper objectMapper;
+
     private static final List<String> IGNORE_URL = Lists.newArrayList(
-            "/api/short-link/admin/v1/user/login",
-            "/api/short-link/admin/v1/user/has-username"
+            "/api/v1/short_link/admin/user/login",
+            "/api/v1/short_link/admin/user/has-username"
     );
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws JsonProcessingException {
         String requestURI = request.getRequestURI();
         String method = request.getMethod();
 
@@ -39,25 +43,26 @@ public class UserTransmitInterceptor implements HandlerInterceptor {
         }
 
         // 忽略注册请求
-        if (requestURI.equals("/api/short-link/admin/v1/user") && "POST".equals(method)) {
+        if (requestURI.equals("/api/v1/short_link/admin/user") && method.equals("POST")) {
             return true;
         }
 
         // 验证 Token
         String username = request.getHeader("username");
         String token = request.getHeader("token");
-        if (!StrUtil.isAllNotBlank(username, token)) {
+
+        if (StringUtils.isAnyBlank(username, token)) {
             throw new ClientException(UserErrorCodeEnum.USER_TOKEN_FAIL);
         }
 
         // 从 Redis 验证 Token
-        Object userInfoJsonStr = stringRedisTemplate.opsForHash().get("login_" + username, token);
+        String userInfoJsonStr = (String)stringRedisTemplate.opsForHash().get(RedisKeyConstant.USER_LOGIN_KEY + username, token);
         if (userInfoJsonStr == null) {
             throw new ClientException(UserErrorCodeEnum.USER_TOKEN_FAIL);
         }
 
         // 存储用户信息到上下文
-        UserInfoDTO userInfoDTO = JSON.parseObject(userInfoJsonStr.toString(), UserInfoDTO.class);
+        UserInfoDTO userInfoDTO = objectMapper.readValue(userInfoJsonStr, UserInfoDTO.class);
         UserContext.setUser(userInfoDTO);
         return true;
     }

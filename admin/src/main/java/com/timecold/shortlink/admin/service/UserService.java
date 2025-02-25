@@ -15,10 +15,9 @@ public interface UserService extends IService<UserDO> {
 
     /**
      * 根据用户名查询用户信息
-     * @param username 用户名
      * @return 用户返回实体
      */
-    UserRespDTO getUserByUsername(String username);
+    UserRespDTO getUserByUsername();
 
     /**
      * 查询用户名是否存在
@@ -57,9 +56,9 @@ public interface UserService extends IService<UserDO> {
     Boolean checkLogin(String username, String token);
 
     /**
-     * 退出登录
+     * 用户退出登录
      * @param username 用户名
-     * @param token 用户登录 token
+     * @param token token
      */
     void logout(String username, String token);
 }

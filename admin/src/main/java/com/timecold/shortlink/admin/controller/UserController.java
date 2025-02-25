@@ -10,6 +10,7 @@ import com.timecold.shortlink.admin.dto.resp.UserActualRespDTO;
 import com.timecold.shortlink.admin.dto.resp.UserLoginRespDTO;
 import com.timecold.shortlink.admin.dto.resp.UserRespDTO;
 import com.timecold.shortlink.admin.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,17 +27,17 @@ public class UserController {
     /**
      * 根据用户名查询用户信息
      */
-    @GetMapping("/user/{username}")
-    public Result<UserRespDTO> getUserByUsername(@PathVariable("username") String username) {
-            return Results.success(userService.getUserByUsername(username));
+    @GetMapping("/user")
+    public Result<UserRespDTO> getUserByUsername() {
+            return Results.success(userService.getUserByUsername());
     }
 
     /**
      * 根据用户名查询用户未脱敏信息
      */
-    @GetMapping("/actual/user/{username}")
-    public Result<UserActualRespDTO> getActualUserByUsername(@PathVariable("username") String username) {
-        return Results.success(BeanUtil.toBean(userService.getUserByUsername(username), UserActualRespDTO.class));
+    @GetMapping("user/actual")
+    public Result<UserActualRespDTO> getActualUserByUsername() {
+        return Results.success(BeanUtil.toBean(userService.getUserByUsername(), UserActualRespDTO.class));
     }
 
     /**
@@ -76,12 +77,16 @@ public class UserController {
      * 校验用户是否登录
      */
     @GetMapping("/user/check-login")
-    public Result<Boolean> checkLogin(@RequestParam("username") String username, @RequestParam("token") String token) {
+    public Result<Boolean> checkLogin(HttpServletRequest request) {
+        String username = request.getHeader("username");
+        String token = request.getHeader("token");
         return Results.success(userService.checkLogin(username, token));
     }
 
     @DeleteMapping("/user/logout")
-    public Result<Void> logout(@RequestParam("username") String username, @RequestParam("token") String token) {
+    public Result<Void> logout(HttpServletRequest request) {
+        String username = request.getHeader("username");
+        String token = request.getHeader("token");
         userService.logout(username, token);
         return Results.success();
     }
