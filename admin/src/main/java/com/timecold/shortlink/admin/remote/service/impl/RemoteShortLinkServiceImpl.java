@@ -98,8 +98,34 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
     }
 
     @Override
-    public void archiveShortLink(RecycleBinArchiveReqDTO requestParam) {
+    public Page<ShortLinkPageRespDTO> pageArchivedShortLink(Long size, Long current) {
+        String remoteUrl = REMOTE_URL + "/archived_links";
+        String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
+                .queryParam("size", size)
+                .queryParam("current", current)
+                .queryParam("uid", UserContext.getUserId()).toUriString();
+        Result<Page<ShortLinkPageRespDTO>> result = restTemplate.exchange(finalUrl,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Result<Page<ShortLinkPageRespDTO>>>() {
+                }).getBody();
+        if (result == null) {
+            throw new ServiceException("查询归档链接失败");
+        }
+        return result.getData();
+    }
+
+    @Override
+    public void archiveShortLink(ArchiveReqDTO requestParam) {
         String remoteUrl = REMOTE_URL + "/archive";
+        requestParam.setUid(UserContext.getUserId());
         restTemplate.put(remoteUrl, requestParam);
     }
+    @Override
+    public void recoverShortLink(ArchiveRecoverDTO requestParam) {
+        String remoteUrl = REMOTE_URL + "/archive_recover";
+        requestParam.setUid(UserContext.getUserId());
+        restTemplate.put(remoteUrl, requestParam);
+    }
+
 }

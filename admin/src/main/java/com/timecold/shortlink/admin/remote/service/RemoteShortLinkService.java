@@ -54,5 +54,19 @@ public interface RemoteShortLinkService {
      *
      * @param requestParam 归档短链接请求参数
      */
-    void archiveShortLink(RecycleBinArchiveReqDTO requestParam);
+    void archiveShortLink(ArchiveReqDTO requestParam);
+
+    /**
+     * 分页查询归档的短链接
+     * @param size 每页显示条数
+     * @param current 当前页
+     * @return
+     */
+    Page<ShortLinkPageRespDTO> pageArchivedShortLink(Long size, Long current);
+
+    /**
+     * 恢复归档的短链接
+     * @param requestParam 恢复归档的短链接请求参数
+     */
+    void recoverShortLink(ArchiveRecoverDTO requestParam);
 }

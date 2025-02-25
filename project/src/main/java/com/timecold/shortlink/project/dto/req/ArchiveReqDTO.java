@@ -6,12 +6,12 @@ import lombok.Data;
  * 短链接归档请求对象
  */
 @Data
-public class RecycleBinArchiveReqDTO {
+public class ArchiveReqDTO {
 
     /**
-     * 分组标识
+     * 用户id
      */
-    private String gid;
+    private Long uid;
 
     /**
      * 短链接
