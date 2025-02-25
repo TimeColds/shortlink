@@ -3,7 +3,8 @@ package com.timecold.shortlink.project.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.timecold.shortlink.project.common.convention.result.Result;
 import com.timecold.shortlink.project.common.convention.result.Results;
-import com.timecold.shortlink.project.dto.req.ArchiveRecoverDTO;
+import com.timecold.shortlink.project.dto.req.ArchiveRecoverReqDTO;
+import com.timecold.shortlink.project.dto.req.ArchiveRemoveReqDTO;
 import com.timecold.shortlink.project.dto.req.ArchiveReqDTO;
 import com.timecold.shortlink.project.dto.req.ArchivedPageReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkPageRespDTO;
@@ -39,8 +40,14 @@ public class ArchiveController {
     }
 
     @PutMapping("/archive_recover")
-    public Result<Void> recoverShortLink(@RequestBody ArchiveRecoverDTO requestParam) {
+    public Result<Void> recoverShortLink(@RequestBody ArchiveRecoverReqDTO requestParam) {
         archiveService.recoverShortLink(requestParam);
+        return Results.success();
+    }
+
+    @PutMapping("/delete")
+    public Result<Void> archiveRemove(@RequestBody ArchiveRemoveReqDTO requestParam) {
+        archiveService.archiveRemove(requestParam);
         return Results.success();
     }
 }

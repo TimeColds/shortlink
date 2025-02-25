@@ -2,11 +2,8 @@ package com.timecold.shortlink.admin.remote.dto.req;
 
 import lombok.Data;
 
-/**
- * 短链接归档请求对象
- */
 @Data
-public class  ArchiveReqDTO {
+public class ArchiveRemoveReqDTO {
 
     /**
      * 用户id
@@ -17,5 +14,4 @@ public class  ArchiveReqDTO {
      * 短链接
      */
     private String shortUrl;
-
 }

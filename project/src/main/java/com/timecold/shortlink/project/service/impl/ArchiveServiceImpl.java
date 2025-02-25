@@ -9,7 +9,8 @@ import com.timecold.shortlink.project.common.constant.RedisKeyConstant;
 import com.timecold.shortlink.project.common.convention.exception.ClientException;
 import com.timecold.shortlink.project.dao.entity.ShortLinkDO;
 import com.timecold.shortlink.project.dao.mapper.ShortLinkMapper;
-import com.timecold.shortlink.project.dto.req.ArchiveRecoverDTO;
+import com.timecold.shortlink.project.dto.req.ArchiveRecoverReqDTO;
+import com.timecold.shortlink.project.dto.req.ArchiveRemoveReqDTO;
 import com.timecold.shortlink.project.dto.req.ArchiveReqDTO;
 import com.timecold.shortlink.project.dto.req.ArchivedPageReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkPageRespDTO;
@@ -44,7 +45,6 @@ public class ArchiveServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO
         if (updateRow == 0) {
             throw new ClientException("归档失败");
         }
-        stringRedisTemplate.delete(RedisKeyConstant.SHORT_LINK_GOTO_KEY + requestParam.getShortUrl());
     }
 
     @Override
@@ -64,7 +64,7 @@ public class ArchiveServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO
     }
 
     @Override
-    public void recoverShortLink(ArchiveRecoverDTO requestParam) {
+    public void recoverShortLink(ArchiveRecoverReqDTO requestParam) {
         if (!shortUrlCachePenetrationBloomFilter.contains(requestParam.getShortUrl())) {
             throw new ClientException("短链不存在");
         }
@@ -80,5 +80,24 @@ public class ArchiveServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO
         if (updateRow == 0) {
             throw new ClientException("恢复失败");
         }
+    }
+
+    @Override
+    public void archiveRemove(ArchiveRemoveReqDTO requestParam) {
+        if (!shortUrlCachePenetrationBloomFilter.contains(requestParam.getShortUrl())) {
+            throw new ClientException("短链不存在");
+        }
+        LambdaUpdateWrapper<ShortLinkDO> updateWrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
+                .eq(ShortLinkDO::getShortUrl, requestParam.getShortUrl())
+                .eq(ShortLinkDO::getUid, requestParam.getUid())
+                .eq(ShortLinkDO::getEnableStatus, 1)
+                .eq(ShortLinkDO::getDelFlag, 0)
+                .set(ShortLinkDO::getDelFlag, 1);
+        ShortLinkDO shortLinkDO = new ShortLinkDO();
+        int updateRow = baseMapper.update(shortLinkDO, updateWrapper);
+        if (updateRow == 0) {
+            throw new ClientException("删除失败");
+        }
+        stringRedisTemplate.delete(RedisKeyConstant.SHORT_LINK_GOTO_KEY + requestParam.getShortUrl());
     }
 }

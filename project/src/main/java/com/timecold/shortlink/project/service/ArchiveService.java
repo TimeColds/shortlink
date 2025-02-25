@@ -4,7 +4,8 @@ package com.timecold.shortlink.project.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.timecold.shortlink.project.dao.entity.ShortLinkDO;
-import com.timecold.shortlink.project.dto.req.ArchiveRecoverDTO;
+import com.timecold.shortlink.project.dto.req.ArchiveRecoverReqDTO;
+import com.timecold.shortlink.project.dto.req.ArchiveRemoveReqDTO;
 import com.timecold.shortlink.project.dto.req.ArchiveReqDTO;
 import com.timecold.shortlink.project.dto.req.ArchivedPageReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkPageRespDTO;
@@ -33,5 +34,11 @@ public interface ArchiveService extends IService<ShortLinkDO> {
      * 恢复归档的短链接
      * @param requestParam 恢复归档的短链接请求参数
      */
-    void recoverShortLink(ArchiveRecoverDTO requestParam);
+    void recoverShortLink(ArchiveRecoverReqDTO requestParam);
+
+    /**
+     * 删除归档的短链接
+     * @param requestParam 删除归档的短链接请求参数
+     */
+    void archiveRemove(ArchiveRemoveReqDTO requestParam);
 }

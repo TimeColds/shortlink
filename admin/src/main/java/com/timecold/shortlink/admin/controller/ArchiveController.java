@@ -3,8 +3,9 @@ package com.timecold.shortlink.admin.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.timecold.shortlink.admin.common.convention.result.Result;
 import com.timecold.shortlink.admin.common.convention.result.Results;
-import com.timecold.shortlink.admin.remote.dto.req.ArchiveRecoverDTO;
+import com.timecold.shortlink.admin.remote.dto.req.ArchiveRecoverReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ArchiveReqDTO;
+import com.timecold.shortlink.admin.remote.dto.req.ArchiveRemoveReqDTO;
 import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
 import com.timecold.shortlink.admin.remote.service.RemoteShortLinkService;
 import lombok.RequiredArgsConstructor;
@@ -37,8 +38,14 @@ public class ArchiveController {
     }
 
     @PutMapping("/archive_recover")
-    public Result<Void> recoverShortLink(@RequestBody ArchiveRecoverDTO requestParam) {
+    public Result<Void> recoverShortLink(@RequestBody ArchiveRecoverReqDTO requestParam) {
         remoteShortLinkService.recoverShortLink(requestParam);
+        return Results.success();
+    }
+
+    @PutMapping("/delete")
+    public Result<Void> archiveRemove(@RequestBody ArchiveRemoveReqDTO requestParam) {
+        remoteShortLinkService.archiveRemove(requestParam);
         return Results.success();
     }
 }

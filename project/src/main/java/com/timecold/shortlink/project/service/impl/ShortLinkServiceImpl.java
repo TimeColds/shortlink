@@ -214,7 +214,6 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private ShortLinkDO getValidShortLink(String shortUrl) {
         ShortLinkDO shortLinkDO = baseMapper.selectOne(Wrappers.lambdaQuery(ShortLinkDO.class)
                 .eq(ShortLinkDO::getShortUrl, shortUrl)
-                .eq(ShortLinkDO::getEnableStatus, 0)
                 .eq(ShortLinkDO::getDelFlag, 0));
         if (shortLinkDO == null) {
             return null;

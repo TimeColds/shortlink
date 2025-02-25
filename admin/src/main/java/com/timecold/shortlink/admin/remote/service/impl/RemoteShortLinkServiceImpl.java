@@ -122,8 +122,15 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
         restTemplate.put(remoteUrl, requestParam);
     }
     @Override
-    public void recoverShortLink(ArchiveRecoverDTO requestParam) {
+    public void recoverShortLink(ArchiveRecoverReqDTO requestParam) {
         String remoteUrl = REMOTE_URL + "/archive_recover";
+        requestParam.setUid(UserContext.getUserId());
+        restTemplate.put(remoteUrl, requestParam);
+    }
+
+    @Override
+    public void archiveRemove(ArchiveRemoveReqDTO requestParam) {
+        String remoteUrl = REMOTE_URL + "/delete";
         requestParam.setUid(UserContext.getUserId());
         restTemplate.put(remoteUrl, requestParam);
     }

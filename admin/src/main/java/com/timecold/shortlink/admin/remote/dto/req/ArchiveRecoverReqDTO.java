@@ -1,9 +1,9 @@
-package com.timecold.shortlink.project.dto.req;
+package com.timecold.shortlink.admin.remote.dto.req;
 
 import lombok.Data;
 
 @Data
-public class ArchiveRecoverDTO {
+public class ArchiveRecoverReqDTO {
 
     /**
      * 用户id

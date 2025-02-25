@@ -68,5 +68,11 @@ public interface RemoteShortLinkService {
      * 恢复归档的短链接
      * @param requestParam 恢复归档的短链接请求参数
      */
-    void recoverShortLink(ArchiveRecoverDTO requestParam);
+    void recoverShortLink(ArchiveRecoverReqDTO requestParam);
+
+    /**
+     * 删除归档的短链接
+     * @param requestParam 删除归档的短链接请求参数
+     */
+    void archiveRemove(ArchiveRemoveReqDTO requestParam);
 }
