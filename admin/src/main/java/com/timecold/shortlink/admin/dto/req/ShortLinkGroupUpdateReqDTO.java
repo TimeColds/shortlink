@@ -11,7 +11,7 @@ public class ShortLinkGroupUpdateReqDTO {
     /**
      * 分组标识
      */
-    private String gid;
+    private Long gid;
 
     /**
      * 分组名

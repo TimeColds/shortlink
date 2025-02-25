@@ -17,9 +17,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class GroupDO extends BaseDO {
     /**
+     * id
+     */
+    private Long id;
+
+    /**
      * 分组标识
      */
-    private String gid;
+    private Long gid;
 
     /**
      * 分组名称
@@ -27,13 +32,12 @@ public class GroupDO extends BaseDO {
     private String name;
 
     /**
-     * 创建分组用户名
+     * 创建分组用户id
      */
-    private String username;
+    private Long uid;
 
     /**
      * 分组排序
      */
     private Integer sortOrder;
-
 }

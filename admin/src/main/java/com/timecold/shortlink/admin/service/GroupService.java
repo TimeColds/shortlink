@@ -23,10 +23,10 @@ public interface GroupService extends IService<GroupDO> {
     /**
      * 新增短链接分组
      *
-     * @param username  用户名
+     * @param uid  用户id
      * @param groupName 短链接分组名
      */
-    void saveGroup(String username, String groupName);
+    void saveGroup(Long uid, String groupName);
 
     /**
      * 查询用户短链接分组集合
@@ -46,12 +46,12 @@ public interface GroupService extends IService<GroupDO> {
      *
      * @param gid 删除短链接分组的分组标识
      */
-    void deleteGroup(String gid);
+    void deleteGroup(Long gid);
 
     /**
      * 短链接分组排序
      *
      * @param requestParam 短链接分组排序参数
      */
-    void sortGroup(List<ShortLinkGroupSortReqDTO> requestParam);
+    void sortGroup(ShortLinkGroupSortReqDTO requestParam);
 }

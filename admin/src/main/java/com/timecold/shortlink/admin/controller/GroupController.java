@@ -22,7 +22,6 @@ public class GroupController {
 
     private final GroupService groupService;
 
-
     /**
      * 新增短链接分组
      */
@@ -51,8 +50,8 @@ public class GroupController {
     /**
      * 删除短链接分组
      */
-    @DeleteMapping("/group")
-    public Result<Void> deleteGroup(@RequestParam("gid") String gid) {
+    @DeleteMapping("/group/{gid}")
+    public Result<Void> deleteGroup(@PathVariable("gid") Long gid) {
         groupService.deleteGroup(gid);
         return Results.success();
     }
@@ -60,8 +59,8 @@ public class GroupController {
     /**
      * 短链接分组排序
      */
-    @PostMapping("/group/sort")
-    public Result<Void> sortGroup(@RequestBody List<ShortLinkGroupSortReqDTO> requestParam) {
+    @PutMapping("/group/sort")
+    public Result<Void> sortGroup(@RequestBody ShortLinkGroupSortReqDTO requestParam) {
         groupService.sortGroup(requestParam);
         return Results.success();
     }

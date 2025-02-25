@@ -2,6 +2,8 @@ package com.timecold.shortlink.admin.dto.req;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 短链接分组排序参数
  */
@@ -9,12 +11,7 @@ import lombok.Data;
 public class ShortLinkGroupSortReqDTO {
 
     /**
-     * 分组ID
-     */
-    private String gid;
-
-    /**
      * 排序
      */
-    private Integer sortOrder;
+    private List<Long> gidList;
 }
