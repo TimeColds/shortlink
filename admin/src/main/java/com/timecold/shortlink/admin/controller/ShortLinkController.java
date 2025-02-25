@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/short-link/admin/v1")
+@RequestMapping("/api/v1/short_link/admin")
 @RequiredArgsConstructor
 public class ShortLinkController {
 

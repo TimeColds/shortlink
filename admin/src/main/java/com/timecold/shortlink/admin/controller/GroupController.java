@@ -17,7 +17,7 @@ import java.util.List;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/short-link/admin/v1")
+@RequestMapping("/api/v1/short_link/admin")
 public class GroupController {
 
     private final GroupService groupService;
