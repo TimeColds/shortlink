@@ -12,3 +12,6 @@ spring:
       host: 127.0.0.1
       port: 6379
       password: 111111
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
