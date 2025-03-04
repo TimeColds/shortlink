@@ -1,0 +1,131 @@
+package com.timecold.shortlink.project.service.impl;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.timecold.shortlink.project.dao.entity.LinkAccessLogDO;
+import com.timecold.shortlink.project.dao.mapper.LinkAccessLogMapper;
+import com.timecold.shortlink.project.dto.biz.ShortLinkStatsRecordDTO;
+import com.timecold.shortlink.project.service.ShortLinkAnalyticsService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import nl.basjes.parse.useragent.UserAgent;
+import nl.basjes.parse.useragent.UserAgentAnalyzer;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.timecold.shortlink.project.common.constant.RedisKeyConstant.*;
+import static com.timecold.shortlink.project.common.constant.RedisStreamConstant.DAILY_STATS_STREAM;
+import static com.timecold.shortlink.project.common.constant.RedisStreamConstant.PLATFORM_STATS_STREAM;
+
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService {
+
+    private final StringRedisTemplate stringRedisTemplate;
+    private final UserAgentAnalyzer userAgentAnalyzer;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final LinkAccessLogMapper linkAccessLogMapper;
+
+    @Value("${gaode.api-key}")
+    private String amapKey;
+
+    @Override
+    @Async("statsThreadPool")
+    public void processAccess(ShortLinkStatsRecordDTO requestParam) {
+        UserAgent userAgent = userAgentAnalyzer.parse(requestParam.getUserAgent());
+        String device = userAgent.getValue(UserAgent.DEVICE_CLASS);
+        String os = userAgent.getValue(UserAgent.OPERATING_SYSTEM_NAME);
+        String browser = userAgent.getValue(UserAgent.AGENT_NAME);
+        String userIdentifier = requestParam.getUserIdentifier();
+        String ip = requestParam.getIp();
+        LinkAccessLogDO linkAccessLogDO = LinkAccessLogDO.builder()
+                .device(device)
+                .os(os)
+                .browser(browser)
+                .location(obtainLocation(ip))
+                .build();
+        BeanUtils.copyProperties(requestParam, linkAccessLogDO);
+        LocalDateTime accessTime = requestParam.getAccessTime();
+        int year = accessTime.getYear();
+        String dateStr = accessTime.toLocalDate().toString();
+        String hour = String.valueOf(accessTime.getHour());
+        String shortUrl = requestParam.getShortUrl();
+        //pv统计
+        String pvKey = LINK_PV_KEY_PREFIX + shortUrl + ":" + dateStr;
+        stringRedisTemplate.opsForHash().increment(pvKey, hour, 1);
+        //uv统计
+        String uvKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + dateStr;
+        stringRedisTemplate.opsForHyperLogLog().add(uvKey, userIdentifier);
+        //uv签到统计
+        String uvTypeKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + year + ":" + userIdentifier;
+        stringRedisTemplate.opsForValue().setBit(uvTypeKey,accessTime.getDayOfYear(), true);
+        //ip统计
+        String uipKey = LINK_UIP_KEY_PREFIX + shortUrl + ":" + dateStr;
+        stringRedisTemplate.opsForHyperLogLog().add(uipKey , ip);
+
+        String platformStatsKey = LINK_PLATFORM_KEY_PREFIX + shortUrl + ":" + dateStr;
+        String platform = device + ":" + os + ":" + browser;
+        stringRedisTemplate.opsForHash().increment(platformStatsKey, platform, 1);
+
+        Map<String, Object> dailyStatsEvent = new HashMap<>();
+        dailyStatsEvent.put("shortUrl", shortUrl);
+        dailyStatsEvent.put("date", dateStr);
+        dailyStatsEvent.put("hour", hour);
+        dailyStatsEvent.put("userIdentifier", userIdentifier);
+        stringRedisTemplate.opsForStream().add(DAILY_STATS_STREAM, dailyStatsEvent);
+
+        Map<String, Object> platformStatsEvent = new HashMap<>();
+        platformStatsEvent.put("shortUrl", shortUrl);
+        platformStatsEvent.put("date", dateStr);
+        platformStatsEvent.put("device", device);
+        platformStatsEvent.put("os", os);
+        platformStatsEvent.put("browser", browser);
+        stringRedisTemplate.opsForStream().add(PLATFORM_STATS_STREAM, platformStatsEvent);
+    }
+
+    private void processAccessLog() {
+
+    }
+
+    private void processDailyStats() {
+
+    }
+
+    private void processDeviceStats() {
+
+    }
+
+    private void processLocationStats() {
+
+    }
+
+    private String obtainLocation(String ip) {
+//        String amapApi = "https://restapi.amap.com/v3/ip";
+//        String finalUrl = UriComponentsBuilder.fromHttpUrl(amapApi)
+//                .queryParam("key", amapKey)
+//                .queryParam("ip", ip).build().toUriString();
+//        String locationJson = restTemplate.getForObject(finalUrl, String.class);
+//        try {
+//            Map<String, String> map = objectMapper.readValue(locationJson, new TypeReference<>() {});
+//            String infoCode = map.get("infocode");
+//            if (infoCode.equals("10000")) {
+//                return "中国" + map.get("province") + map.get("city");
+//            } else {
+//                return null;
+//            }
+//        } catch (JsonProcessingException e) {
+//            log.error("获取地理位置失败", e);
+//        }
+        return "中国";
+    }
+}

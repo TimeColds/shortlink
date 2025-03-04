@@ -15,3 +15,8 @@ spring:
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+gaode:
+  api-key: ${GAODE_API_KEY}
+
+
