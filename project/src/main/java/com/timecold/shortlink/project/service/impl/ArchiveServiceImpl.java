@@ -98,6 +98,6 @@ public class ArchiveServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO
         if (updateRow == 0) {
             throw new ClientException("删除失败");
         }
-        stringRedisTemplate.delete(RedisKeyConstant.SHORT_LINK_GOTO_KEY + requestParam.getShortUrl());
+        stringRedisTemplate.delete(RedisKeyConstant.LINK_GOTO_KEY + requestParam.getShortUrl());
     }
 }
