@@ -28,6 +28,7 @@
         <hutool-all.version>5.8.20</hutool-all.version>
         <redisson.version>3.21.3</redisson.version>
         <httpclient5.version>5.3.1</httpclient5.version>
+        <yauaa.version>7.28.1</yauaa.version>
         <jsoup.version>1.18.1</jsoup.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
     </properties>
@@ -107,6 +108,11 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>nl.basjes.parse.useragent</groupId>
+                <artifactId>yauaa</artifactId>
+                <version>${yauaa.version}</version>
             </dependency>
 <!--            <dependency>-->
 <!--                <groupId>com.alibaba.fastjson2</groupId>-->
