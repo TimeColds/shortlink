@@ -9,7 +9,6 @@ import com.timecold.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkPageRespDTO;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
 
@@ -52,9 +51,8 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
     /**
      * 短链接跳转
      * @param shortUrl 短链接后缀
-     * @param response HTTP 响应
      */
-    void redirectUrl(String shortUrl, HttpServletResponse response);
+    String  redirectUrl(String shortUrl);
 
     /**
      * 根据 URL 获取标题

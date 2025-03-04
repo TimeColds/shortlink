@@ -21,9 +21,7 @@ import com.timecold.shortlink.project.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import com.timecold.shortlink.project.service.ShortLinkService;
 import com.timecold.shortlink.project.toolkit.HashUtil;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -85,7 +83,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 throw new ServiceException("短链接生成重复");
             }
         }
-        String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY + shortUrl;
+        String gotoKey = RedisKeyConstant.LINK_GOTO_KEY + shortUrl;
         updateUrlInfoCache(gotoKey, shortLinkDO.getOriginUrl(), shortLinkDO.getValidDate());
         shortUrlCachePenetrationBloomFilter.add(shortUrl);
         return ShortLinkCreateRespDTO.builder()
@@ -147,54 +145,49 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         if (updateRow == 0) {
             throw new ClientException("更新失败");
         }
-        updateUrlInfoCache(RedisKeyConstant.SHORT_LINK_GOTO_KEY + requestParam.getShortUrl(), requestParam.getOriginUrl(), requestParam.getValidDate());
+        updateUrlInfoCache(RedisKeyConstant.LINK_GOTO_KEY + requestParam.getShortUrl(), requestParam.getOriginUrl(), requestParam.getValidDate());
     }
 
-    @SneakyThrows
     @Override
-    public void redirectUrl(String shortUrl, HttpServletResponse response) {
-        String gotoKey = RedisKeyConstant.SHORT_LINK_GOTO_KEY + shortUrl;
+    public String redirectUrl(String shortUrl) {
+        String gotoKey = RedisKeyConstant.LINK_GOTO_KEY + shortUrl;
         if (!shortUrlCachePenetrationBloomFilter.contains(shortUrl)) {
-            response.sendRedirect("/error/notfound.html");
-            return;
+            return "notFound";
         }
-        Map<Object, Object> urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
+            Map<Object, Object> urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
         if (!urlInfo.isEmpty()) {
             long expireTimestamp = Long.parseLong((String) urlInfo.get("expireTimestamp"));
             long remaining = expireTimestamp - System.currentTimeMillis();
             if (expireTimestamp > 0 && remaining < 0) {
                 stringRedisTemplate.delete(gotoKey);
-                response.sendRedirect("/error/notfound.html");
+                return "notFound";
             } else {
-                response.sendRedirect((String) urlInfo.get("originUrl"));
                 updateCacheTtl(gotoKey, expireTimestamp);
+                return (String) urlInfo.get("originUrl");
             }
-            return;
         }
         if (isGotoNullCacheExists(shortUrl)) {
-            response.sendRedirect("/error/notfound.html");
-            return;
+            return "notFound";
         }
-        RLock lock = redissonClient.getLock(RedisKeyConstant.SHORT_LINK_GOTO_LOCK_KEY + shortUrl);
+        RLock lock = redissonClient.getLock(RedisKeyConstant.LINK_GOTO_LOCK_KEY + shortUrl);
         try {
             lock.lock();
             if (isGotoNullCacheExists(shortUrl)) {
-                response.sendRedirect("/error/notfound.html");
-                return;
+                return "notFound";
             }
             urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
             if (!urlInfo.isEmpty()) {
-                response.sendRedirect((String) urlInfo.get("originUrl"));
-                return;
+                return (String) urlInfo.get("originUrl");
             }
             ShortLinkDO shortLinkDO = getValidShortLink(shortUrl);
             if (shortLinkDO == null) {
                 stringRedisTemplate.opsForValue().set(
-                        RedisKeyConstant.SHORT_LINK_GOTO_NULL_KEY + shortUrl,
+                        RedisKeyConstant.LINK_GOTO_NULL_KEY + shortUrl,
                         "-", 30, TimeUnit.MINUTES);
-                response.sendRedirect("/error/notfound.html");
+                return "notFound";
             } else {
                 updateUrlInfoCache(gotoKey, shortLinkDO.getOriginUrl(), shortLinkDO.getValidDate());
+                return shortLinkDO.getOriginUrl();
             }
         } finally {
             lock.unlock();
@@ -233,7 +226,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     private boolean isGotoNullCacheExists(String shortUrl) {
-        return stringRedisTemplate.hasKey(RedisKeyConstant.SHORT_LINK_GOTO_NULL_KEY + shortUrl);
+        return stringRedisTemplate.hasKey(RedisKeyConstant.LINK_GOTO_NULL_KEY + shortUrl);
     }
 
     private void updateCacheTtl(String gotoKey, long expireTimestamp) {
