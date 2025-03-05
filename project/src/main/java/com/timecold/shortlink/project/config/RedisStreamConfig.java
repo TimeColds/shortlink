@@ -2,6 +2,7 @@ package com.timecold.shortlink.project.config;
 
 import com.timecold.shortlink.project.mq.consumer.ShortLinkDailyStatsConsumer;
 import com.timecold.shortlink.project.mq.consumer.ShortLinkLocationStatsConsumer;
+import com.timecold.shortlink.project.mq.consumer.ShortLinkLogStatsConsumer;
 import com.timecold.shortlink.project.mq.consumer.ShortLinkPlatformStatsConsumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,18 +35,21 @@ public class RedisStreamConfig implements InitializingBean, DisposableBean {
     private final ShortLinkDailyStatsConsumer dailyStatsConsumer;
     private final ShortLinkPlatformStatsConsumer platformStatsConsumer;
     private final ShortLinkLocationStatsConsumer locationStatsConsumer;
+    private final ShortLinkLogStatsConsumer logStatsConsumer;
     private final StringRedisTemplate stringRedisTemplate;
 
     private StreamMessageListenerContainer<String, MapRecord<String, String, String>> container;
     private static final String DAILY_CONSUMER_NAME = "daily-consumer-1";
     private static final String PLATFORM_CONSUMER_NAME = "platform-consumer-1";
     private static final String LOCATION_CONSUMER_NAME = "location-consumer-1";
+    private static final String LOG_CONSUMER_NAME = "log-consumer-1";
     private static final long MAX_STREAM_LENGTH = 10;
 
     private static final Map<String, String> STREAM_GROUPS = Map.of(
             DAILY_STATS_STREAM, DAILY_CONSUMER_GROUP,
             PLATFORM_STATS_STREAM, PLATFORM_CONSUMER_GROUP,
-            LOCATION_STATS_STREAM, LOCATION_CONSUMER_GROUP
+            LOCATION_STATS_STREAM, LOCATION_CONSUMER_GROUP,
+            LOG_STATS_STREAM, LOG_STATS_CONSUMER_GROUP
     );
 
     @Override
@@ -57,7 +61,6 @@ public class RedisStreamConfig implements InitializingBean, DisposableBean {
                 log.info("流或消费者组已存在: {} - {}: {}", stream, group, e.getMessage());
             }
         });
-
         StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
                 StreamMessageListenerContainer.StreamMessageListenerContainerOptions
                         .builder()
@@ -78,6 +81,11 @@ public class RedisStreamConfig implements InitializingBean, DisposableBean {
                 Consumer.from(LOCATION_CONSUMER_GROUP, LOCATION_CONSUMER_NAME),
                 StreamOffset.create(LOCATION_STATS_STREAM, ReadOffset.lastConsumed()),
                 locationStatsConsumer
+        );
+        container.receive(
+                Consumer.from(LOG_STATS_CONSUMER_GROUP, LOG_CONSUMER_NAME),
+                StreamOffset.create(LOG_STATS_STREAM, ReadOffset.lastConsumed()),
+                logStatsConsumer
         );
         container.start();
         log.info("Redis流监听器容器已启动");

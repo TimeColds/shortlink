@@ -1,16 +1,19 @@
 package com.timecold.shortlink.project.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.timecold.shortlink.project.dao.entity.LinkAccessLogDO;
-import com.timecold.shortlink.project.dao.mapper.LinkAccessLogMapper;
+import com.timecold.shortlink.project.common.convention.exception.ServiceException;
+import com.timecold.shortlink.project.dao.entity.LinkLogStatsDO;
+import com.timecold.shortlink.project.dao.mapper.LinkLogStatsMapper;
 import com.timecold.shortlink.project.dto.biz.ShortLinkStatsRecordDTO;
 import com.timecold.shortlink.project.service.ShortLinkAnalyticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
 import nl.basjes.parse.useragent.UserAgentAnalyzer;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Range;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -33,7 +36,7 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
     private final UserAgentAnalyzer userAgentAnalyzer;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final LinkAccessLogMapper linkAccessLogMapper;
+    private final LinkLogStatsMapper linkLogStatsMapper;
 
     @Value("${gaode.api-key}")
     private String amapKey;
@@ -48,26 +51,40 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         String userIdentifier = requestParam.getUserIdentifier();
         String ip = requestParam.getIp();
         String location = obtainLocation(ip);
-        LinkAccessLogDO linkAccessLogDO = LinkAccessLogDO.builder()
+        LocalDateTime accessTime = requestParam.getAccessTime();
+        String year = String.valueOf(accessTime.getYear());
+        String dateStr = accessTime.toLocalDate().toString();
+        String hour = String.valueOf(accessTime.getHour());
+        String shortUrl = requestParam.getShortUrl();
+
+        LinkLogStatsDO linkLogStatsDO = LinkLogStatsDO.builder()
+                .shortUrl(shortUrl)
+                .accessTime(accessTime)
+                .ip(ip)
+                .referer(requestParam.getReferer())
                 .device(device)
                 .os(os)
                 .browser(browser)
                 .location(location)
                 .build();
-        BeanUtils.copyProperties(requestParam, linkAccessLogDO);
-        LocalDateTime accessTime = requestParam.getAccessTime();
-        int year = accessTime.getYear();
-        String dateStr = accessTime.toLocalDate().toString();
-        String hour = String.valueOf(accessTime.getHour());
-        String shortUrl = requestParam.getShortUrl();
+
         //pv统计
         String pvKey = LINK_PV_KEY_PREFIX + shortUrl + ":" + dateStr;
         stringRedisTemplate.opsForHash().increment(pvKey, hour, 1);
         //uv统计
         String uvKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + dateStr;
         stringRedisTemplate.opsForHyperLogLog().add(uvKey, userIdentifier);
-        //uv签到统计
+
         String uvTypeKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + year + ":" + userIdentifier;
+        Long uvType = stringRedisTemplate.execute((RedisCallback<Long>) connection ->
+                connection.stringCommands().bitPos(uvTypeKey.getBytes(), true, Range.unbounded())
+        );
+        if (uvType == -1) {
+            linkLogStatsDO.setVisitorType(0);
+        } else {
+            linkLogStatsDO.setVisitorType(1);
+        }
+        //uv签到统计
         stringRedisTemplate.opsForValue().setBit(uvTypeKey,accessTime.getDayOfYear(), true);
         //ip统计
         String uipKey = LINK_UIP_KEY_PREFIX + shortUrl + ":" + dateStr;
@@ -101,6 +118,16 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         locationStatsEvent.put("date", dateStr);
         locationStatsEvent.put("province", location);
         stringRedisTemplate.opsForStream().add(LOCATION_STATS_STREAM, locationStatsEvent);
+
+        String linkStatsLog;
+        try {
+            linkStatsLog = objectMapper.writeValueAsString(linkLogStatsDO);
+        } catch (JsonProcessingException e) {
+            throw new ServiceException("json序列化失败");
+        }
+        Map<String, Object> statsLogEvent = new HashMap<>();
+        statsLogEvent.put("linkStatsLog", linkStatsLog);
+        stringRedisTemplate.opsForStream().add(LOG_STATS_STREAM, statsLogEvent);
     }
 
     private void processAccessLog() {

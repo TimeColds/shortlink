@@ -32,12 +32,16 @@ public class ShortLinkAccessInterceptor implements HandlerInterceptor {
         if ("favicon.ico".equals(shortUrl)) {
             return;
         }
+        String referer = request.getHeader("Referer");
+        if (referer == null) {
+            referer = "直接访问";
+        }
         ShortLinkStatsRecordDTO shortLinkStatsRecordDTO = ShortLinkStatsRecordDTO.builder()
                 .shortUrl(shortUrl)
                 .userIdentifier(getUserIdentifier(request, response))
                 .accessTime(LocalDateTime.now())
                 .ip(getClientIp(request))
-                .referer(request.getHeader("Referer"))
+                .referer(referer)
                 .userAgent(request.getHeader("User-Agent"))
                 .build();
         shortLinkAnalyticsService.processAccess(shortLinkStatsRecordDTO);
