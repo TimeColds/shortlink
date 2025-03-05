@@ -25,4 +25,5 @@ public class RedisKeyConstant {
     public static final String LINK_UV_KEY_PREFIX = "link:stats:uv:";
     public static final String LINK_UIP_KEY_PREFIX = "link:stats:uip:";
     public static final String LINK_PLATFORM_KEY_PREFIX = "link:stats:platform:";
+    public static final String LINK_LOCATION_KEY_PREFIX = "link:stats:location:";
 }

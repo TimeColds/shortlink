@@ -18,7 +18,7 @@ import static com.timecold.shortlink.project.common.constant.RedisStreamConstant
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ShortLinkStatsConsumer implements StreamListener<String, MapRecord<String, String, String>> {
+public class ShortLinkDailyStatsConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final LinkDailyStatsMapper linkDailyStatsMapper;

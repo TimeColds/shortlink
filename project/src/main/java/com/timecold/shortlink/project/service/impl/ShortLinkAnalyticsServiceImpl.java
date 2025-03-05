@@ -21,8 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.timecold.shortlink.project.common.constant.RedisKeyConstant.*;
-import static com.timecold.shortlink.project.common.constant.RedisStreamConstant.DAILY_STATS_STREAM;
-import static com.timecold.shortlink.project.common.constant.RedisStreamConstant.PLATFORM_STATS_STREAM;
+import static com.timecold.shortlink.project.common.constant.RedisStreamConstant.*;
 
 
 @Service
@@ -48,11 +47,12 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         String browser = userAgent.getValue(UserAgent.AGENT_NAME);
         String userIdentifier = requestParam.getUserIdentifier();
         String ip = requestParam.getIp();
+        String location = obtainLocation(ip);
         LinkAccessLogDO linkAccessLogDO = LinkAccessLogDO.builder()
                 .device(device)
                 .os(os)
                 .browser(browser)
-                .location(obtainLocation(ip))
+                .location(location)
                 .build();
         BeanUtils.copyProperties(requestParam, linkAccessLogDO);
         LocalDateTime accessTime = requestParam.getAccessTime();
@@ -73,9 +73,13 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         String uipKey = LINK_UIP_KEY_PREFIX + shortUrl + ":" + dateStr;
         stringRedisTemplate.opsForHyperLogLog().add(uipKey , ip);
 
+        //平台统计
         String platformStatsKey = LINK_PLATFORM_KEY_PREFIX + shortUrl + ":" + dateStr;
         String platform = device + ":" + os + ":" + browser;
         stringRedisTemplate.opsForHash().increment(platformStatsKey, platform, 1);
+
+        String locationStatsKey = LINK_LOCATION_KEY_PREFIX + shortUrl + ":" + dateStr;
+        stringRedisTemplate.opsForHash().increment(locationStatsKey, location, 1);
 
         Map<String, Object> dailyStatsEvent = new HashMap<>();
         dailyStatsEvent.put("shortUrl", shortUrl);
@@ -91,6 +95,12 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         platformStatsEvent.put("os", os);
         platformStatsEvent.put("browser", browser);
         stringRedisTemplate.opsForStream().add(PLATFORM_STATS_STREAM, platformStatsEvent);
+
+        Map<String, Object> locationStatsEvent = new HashMap<>();
+        locationStatsEvent.put("shortUrl", shortUrl);
+        locationStatsEvent.put("date", dateStr);
+        locationStatsEvent.put("province", location);
+        stringRedisTemplate.opsForStream().add(LOCATION_STATS_STREAM, locationStatsEvent);
     }
 
     private void processAccessLog() {
