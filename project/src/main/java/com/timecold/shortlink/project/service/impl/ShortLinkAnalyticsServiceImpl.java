@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -68,13 +69,17 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
                 .location(location)
                 .build();
 
+        ZoneOffset zoneOffset = ZoneOffset.ofHours(8);
         //pv统计
         String pvKey = LINK_PV_KEY_PREFIX + shortUrl + ":" + dateStr;
         stringRedisTemplate.opsForHash().increment(pvKey, hour, 1);
+        stringRedisTemplate.expireAt(pvKey, accessTime.plusDays(1).toInstant(zoneOffset));
         //uv统计
         String uvKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + dateStr;
         stringRedisTemplate.opsForHyperLogLog().add(uvKey, userIdentifier);
 
+        stringRedisTemplate.expireAt(uvKey, accessTime.plusDays(1).toInstant(zoneOffset));
+        //uv签到统计
         String uvTypeKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + year + ":" + userIdentifier;
         Long uvType = stringRedisTemplate.execute((RedisCallback<Long>) connection ->
                 connection.stringCommands().bitPos(uvTypeKey.getBytes(), true, Range.unbounded())
@@ -84,19 +89,22 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         } else {
             linkLogStatsDO.setVisitorType(1);
         }
-        //uv签到统计
         stringRedisTemplate.opsForValue().setBit(uvTypeKey,accessTime.getDayOfYear(), true);
         //ip统计
         String uipKey = LINK_UIP_KEY_PREFIX + shortUrl + ":" + dateStr;
         stringRedisTemplate.opsForHyperLogLog().add(uipKey , ip);
+        stringRedisTemplate.expireAt(uipKey, accessTime.plusDays(1).toInstant(zoneOffset));
 
         //平台统计
         String platformStatsKey = LINK_PLATFORM_KEY_PREFIX + shortUrl + ":" + dateStr;
         String platform = device + ":" + os + ":" + browser;
         stringRedisTemplate.opsForHash().increment(platformStatsKey, platform, 1);
+        stringRedisTemplate.expireAt(platformStatsKey, accessTime.plusDays(1).toInstant(zoneOffset));
 
+        //位置统计
         String locationStatsKey = LINK_LOCATION_KEY_PREFIX + shortUrl + ":" + dateStr;
         stringRedisTemplate.opsForHash().increment(locationStatsKey, location, 1);
+        stringRedisTemplate.expireAt(locationStatsKey, accessTime.plusDays(1).toInstant(zoneOffset));
 
         Map<String, Object> dailyStatsEvent = new HashMap<>();
         dailyStatsEvent.put("shortUrl", shortUrl);

@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.net.InetAddresses;
 import com.timecold.shortlink.project.common.constant.RedisKeyConstant;
-import com.timecold.shortlink.project.common.constant.ShortLinkConstant;
 import com.timecold.shortlink.project.common.convention.exception.ClientException;
 import com.timecold.shortlink.project.common.convention.exception.ServiceException;
 import com.timecold.shortlink.project.dao.entity.ShortLinkDO;
@@ -57,6 +56,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final StringRedisTemplate stringRedisTemplate;
 
     private final RestTemplate restTemplate;
+
+    public static final long DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
 
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
@@ -230,8 +231,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     private void updateCacheTtl(String gotoKey, long expireTimestamp) {
-        long ttl = expireTimestamp == 0 ? ShortLinkConstant.DEFAULT_CACHE_TTL :
-                Math.min(expireTimestamp - System.currentTimeMillis(), ShortLinkConstant.DEFAULT_CACHE_TTL);
+        long ttl = expireTimestamp == 0 ? DEFAULT_CACHE_TTL :
+                Math.min(expireTimestamp - System.currentTimeMillis(), DEFAULT_CACHE_TTL);
         stringRedisTemplate.expire(gotoKey, ttl, TimeUnit.MILLISECONDS);
     }
 
