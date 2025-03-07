@@ -73,6 +73,7 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         //pv统计
         String pvKey = LINK_PV_KEY_PREFIX + shortUrl + ":" + dateStr;
         stringRedisTemplate.opsForHash().increment(pvKey, hour, 1);
+        stringRedisTemplate.opsForHash().increment(pvKey, "total", 1);
         stringRedisTemplate.expireAt(pvKey, accessTime.plusDays(1).toInstant(zoneOffset));
         //uv统计
         String uvKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + dateStr;
