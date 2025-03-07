@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.timecold.shortlink.project.common.constant.RedisKeyConstant.*;
@@ -38,54 +39,54 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         if (!shortUrlCachePenetrationBloomFilter.contains(shortUrl)) {
             throw new ServiceException("短链接不存在");
         }
-        LambdaQueryWrapper<LinkDailyStatsDO> lambdaQueryWrapper = Wrappers.lambdaQuery(LinkDailyStatsDO.class)
-                .eq(LinkDailyStatsDO::getShortUrl, shortUrl)
-                .between(LinkDailyStatsDO::getStatsDate, beginDate, endDate)
-                .eq(LinkDailyStatsDO::getDelFlag, 0);
-        List<LinkDailyStatsDO> linkDailyStatsDOList = linkDailyStatsMapper.selectList(lambdaQueryWrapper);
-        Map<LocalDate, List<LinkDailyStatsDO>> statsByDate = linkDailyStatsDOList.stream()
-                .collect(Collectors.groupingBy(LinkDailyStatsDO::getStatsDate));
-        long totalPv = 0;
-        long totalUv = 0;
-        long totalUip = 0;
-        LocalDate now = LocalDate.now();
-        List<ShortLinkDailyStatsRespDTO.DailyStats> dailyStats = new ArrayList<>();
+        List<LinkDailyStatsDO> linkDailyStatsDOList = linkDailyStatsMapper.selectList(Wrappers.query(LinkDailyStatsDO.class)
+                .select("stats_date",
+                        "SUM(pv) AS pv",
+                        "SUM(uv) AS uv",
+                        "SUM(uip) AS uip")
+                .eq("short_url", shortUrl)
+                .between("stats_date", beginDate, endDate)
+                .eq("del_flag", 0)
+                .groupBy("stats_date"));
+        Map<LocalDate, LinkDailyStatsDO> statsByDate = linkDailyStatsDOList.stream()
+                .collect(Collectors.toMap(LinkDailyStatsDO::getStatsDate, Function.identity()));
 
-        long todayPv = 0L;
-        long todayUv = 0L;
-        long todayUip = 0L;
+        LocalDate now = LocalDate.now();
+        long todayPv = 0L, todayUv = 0L, todayUip = 0L;
+
         if (!now.isBefore(beginDate) && !now.isAfter(endDate)) {
             String pvKey = LINK_PV_KEY_PREFIX + shortUrl + ":" + now;
             String uvKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + now;
             String uipKey = LINK_UIP_KEY_PREFIX + shortUrl + ":" + now;
-            Object result = stringRedisTemplate.opsForHash().get(pvKey, "total");
-            if (result != null) {
-                todayPv = Long.parseLong(result.toString());
+            Object pvResult = stringRedisTemplate.opsForHash().get(pvKey, "total");
+            if (pvResult != null) {
+                todayPv = Long.parseLong(pvResult.toString());
             }
             todayUv = stringRedisTemplate.opsForHyperLogLog().size(uvKey);
             todayUip = stringRedisTemplate.opsForHyperLogLog().size(uipKey);
         }
 
+        long totalPv = 0L, totalUv = 0L, totalUip = 0L;
         LocalDate currentDate = beginDate;
+        List<ShortLinkDailyStatsRespDTO.DailyStats> dailyStats = new ArrayList<>();
         while (!currentDate.isAfter(endDate)) {
-            ShortLinkDailyStatsRespDTO.DailyStats currentDayData = new ShortLinkDailyStatsRespDTO.DailyStats();
-            currentDayData.setDate(currentDate);
-
             long pv, uv, uip;
             if (currentDate.equals(now)) {
                 pv = todayPv;
                 uv = todayUv;
                 uip = todayUip;
             } else {
-                List<LinkDailyStatsDO> dayStats = statsByDate.getOrDefault(currentDate, Collections.emptyList());
-                pv = dayStats.stream().mapToLong(LinkDailyStatsDO::getPv).sum();
-                uv = dayStats.stream().mapToLong(LinkDailyStatsDO::getUv).sum();
-                uip = dayStats.stream().mapToLong(LinkDailyStatsDO::getUip).sum();
+                LinkDailyStatsDO dayStats = statsByDate.get(currentDate);
+                pv = dayStats == null ? 0L : dayStats.getPv();
+                uv = dayStats == null ? 0L : dayStats.getUv();
+                uip = dayStats == null ? 0L : dayStats.getUip();
             }
-
             totalPv += pv;
             totalUv += uv;
             totalUip += uip;
+
+            ShortLinkDailyStatsRespDTO.DailyStats currentDayData = new ShortLinkDailyStatsRespDTO.DailyStats();
+            currentDayData.setDate(currentDate);
             currentDayData.setPv(pv);
             currentDayData.setUv(uv);
             currentDayData.setUip(uip);
@@ -93,7 +94,6 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
 
             currentDate = currentDate.plusDays(1);
         }
-
         ShortLinkDailyStatsRespDTO dailyStatsRespDTO = new ShortLinkDailyStatsRespDTO();
         ShortLinkDailyStatsRespDTO.StatsAll statsAll = new ShortLinkDailyStatsRespDTO.StatsAll();
         statsAll.setPv(totalPv);
@@ -101,7 +101,6 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         statsAll.setUip(totalUip);
         dailyStatsRespDTO.setStatsAll(statsAll);
         dailyStatsRespDTO.setDailyStats(dailyStats);
-
         return dailyStatsRespDTO;
     }
 
@@ -152,7 +151,7 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
     }
 
 
-    private long[] weekdayStats(List<LinkDailyStatsDO> linkDailyStatsDOList,LocalDate beginDate, LocalDate endDate) {
+    private long[] weekdayStats(List<LinkDailyStatsDO> linkDailyStatsDOList, LocalDate beginDate, LocalDate endDate) {
         Map<LocalDate, List<LinkDailyStatsDO>> statsByDate = linkDailyStatsDOList.stream()
                 .collect(Collectors.groupingBy(LinkDailyStatsDO::getStatsDate));
         long[] weekdayDistribution = new long[7];
@@ -160,9 +159,9 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         while (!currentDate.isAfter(endDate)) {
             DayOfWeek dayOfWeek = currentDate.getDayOfWeek();
             int dayIndex = dayOfWeek.getValue() - 1;
-                List<LinkDailyStatsDO> dayStats = statsByDate.getOrDefault(currentDate, Collections.emptyList());
-                long pv = dayStats.stream().mapToLong(LinkDailyStatsDO::getPv).sum();
-                weekdayDistribution[dayIndex] += pv;
+            List<LinkDailyStatsDO> dayStats = statsByDate.getOrDefault(currentDate, Collections.emptyList());
+            long pv = dayStats.stream().mapToLong(LinkDailyStatsDO::getPv).sum();
+            weekdayDistribution[dayIndex] += pv;
             currentDate = currentDate.plusDays(1);
         }
         return weekdayDistribution;
