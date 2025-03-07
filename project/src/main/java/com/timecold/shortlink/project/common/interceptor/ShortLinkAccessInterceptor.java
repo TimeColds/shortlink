@@ -32,6 +32,10 @@ public class ShortLinkAccessInterceptor implements HandlerInterceptor {
         if ("favicon.ico".equals(shortUrl)) {
             return;
         }
+        int status = response.getStatus();
+        if (status == HttpServletResponse.SC_NOT_FOUND) {
+            return;
+        }
         String referer = request.getHeader("Referer");
         if (referer == null) {
             referer = "直接访问";
