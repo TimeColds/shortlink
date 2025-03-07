@@ -1,11 +1,12 @@
 package com.timecold.shortlink.project.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.timecold.shortlink.project.common.convention.exception.ServiceException;
 import com.timecold.shortlink.project.dao.entity.LinkDailyStatsDO;
 import com.timecold.shortlink.project.dao.mapper.LinkDailyStatsMapper;
 import com.timecold.shortlink.project.dao.mapper.LinkLogStatsMapper;
+import com.timecold.shortlink.project.dto.biz.ShortLinkHourlyStatsDTO;
+import com.timecold.shortlink.project.dto.biz.ShortLinkWeeklyStatsDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkChartStatsRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkDailyStatsRespDTO;
 import com.timecold.shortlink.project.service.ShortLinkStatsService;
@@ -15,9 +16,11 @@ import org.redisson.api.RBloomFilter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -114,16 +117,8 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         LocalDate today = LocalDate.now();
         if (beginDate.isBefore(today) || endDate.isBefore(today)) {
             LocalDate newEndDate = endDate.isEqual(today) ? endDate.minusDays(1) : endDate;
-            LambdaQueryWrapper<LinkDailyStatsDO> lambdaQueryWrapper = Wrappers.lambdaQuery(LinkDailyStatsDO.class)
-                    .eq(LinkDailyStatsDO::getShortUrl, shortUrl)
-                    .between(LinkDailyStatsDO::getStatsDate, beginDate, newEndDate)
-                    .eq(LinkDailyStatsDO::getDelFlag, 0)
-                    .orderByAsc(LinkDailyStatsDO::getHour);
-            List<LinkDailyStatsDO> linkDailyStatsDOList = linkDailyStatsMapper.selectList(lambdaQueryWrapper);
-            for (LinkDailyStatsDO stats : linkDailyStatsDOList) {
-                hourlyDistribution[stats.getHour()] += stats.getPv();
-            }
-            weekdayDistribution = weekdayStats(linkDailyStatsDOList, beginDate, newEndDate);
+            hourlyDistribution = hourlyStats(shortUrl, beginDate, newEndDate);
+            weekdayDistribution = weeklyStats(shortUrl, beginDate, newEndDate);
         }
         if (!today.isBefore(beginDate) && !today.isAfter(endDate)) {
             String pvKey = LINK_PV_KEY_PREFIX + shortUrl + ":" + today;
@@ -151,19 +146,25 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
     }
 
 
-    private long[] weekdayStats(List<LinkDailyStatsDO> linkDailyStatsDOList, LocalDate beginDate, LocalDate endDate) {
-        Map<LocalDate, List<LinkDailyStatsDO>> statsByDate = linkDailyStatsDOList.stream()
-                .collect(Collectors.groupingBy(LinkDailyStatsDO::getStatsDate));
+
+
+    private long[] weeklyStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
+        List<ShortLinkWeeklyStatsDTO> weeklyStatsDTOList = linkDailyStatsMapper.getWeeklyStats(shortUrl, beginDate, endDate);
         long[] weekdayDistribution = new long[7];
-        LocalDate currentDate = beginDate;
-        while (!currentDate.isAfter(endDate)) {
-            DayOfWeek dayOfWeek = currentDate.getDayOfWeek();
-            int dayIndex = dayOfWeek.getValue() - 1;
-            List<LinkDailyStatsDO> dayStats = statsByDate.getOrDefault(currentDate, Collections.emptyList());
-            long pv = dayStats.stream().mapToLong(LinkDailyStatsDO::getPv).sum();
-            weekdayDistribution[dayIndex] += pv;
-            currentDate = currentDate.plusDays(1);
+        for (ShortLinkWeeklyStatsDTO weeklyStats : weeklyStatsDTOList) {
+            int weekIndex = weeklyStats.getDayOfWeek();
+            weekdayDistribution[weekIndex] += weeklyStats.getPv();
         }
         return weekdayDistribution;
     }
+    private long[] hourlyStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
+        List<ShortLinkHourlyStatsDTO> hourlyStatsDTOList = linkDailyStatsMapper.getHourlyStats(shortUrl, beginDate, endDate);
+        long[] hourlyDistribution = new long[24];
+        for (ShortLinkHourlyStatsDTO hourlyStats : hourlyStatsDTOList) {
+            int hourIndex = hourlyStats.getHour();
+            hourlyDistribution[hourIndex] += hourlyStats.getPv();
+        }
+        return hourlyDistribution;
+    }
+
 }
