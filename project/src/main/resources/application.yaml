@@ -16,6 +16,9 @@ mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
+short-link:
+  domain:
+    default: timecold.xzy
 gaode:
   api-key: ${GAODE_API_KEY}
 

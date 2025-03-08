@@ -31,6 +31,7 @@ import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -63,13 +64,18 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final RestTemplate restTemplate;
     private final LinkDailyStatsMapper linkDailyStatsMapper;
 
+    @Value("${short-link.domain.default}")
+    private String createShortLinkDefaultDomain;
+
+
     public static final long DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
 
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
         String shortUrl = generateShortUrl(requestParam);
-        String fullShortUrl = requestParam.getDomain() + "/" + shortUrl;
+        String fullShortUrl = createShortLinkDefaultDomain + ":8001/" + shortUrl;
         ShortLinkDO shortLinkDO = ShortLinkDO.builder()
+                .domain(createShortLinkDefaultDomain)
                 .favicon(getFavicon(requestParam.getOriginUrl()))
                 .shortUrl(shortUrl)
                 .uid(requestParam.getUid())
@@ -77,7 +83,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .fullShortUrl(fullShortUrl)
                 .enableStatus(0)
                 .build();
-        BeanUtils.copyProperties(requestParam, shortLinkDO);
+        BeanUtils.copyProperties(requestParam, shortLinkDO, "domain");
         try {
             baseMapper.insert(shortLinkDO);
         } catch (DuplicateKeyException ex) {
@@ -216,7 +222,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         if (!shortUrlCachePenetrationBloomFilter.contains(shortUrl)) {
             return "notFound";
         }
-            Map<Object, Object> urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
+        Map<Object, Object> urlInfo = stringRedisTemplate.opsForHash().entries(gotoKey);
         if (!urlInfo.isEmpty()) {
             long expireTimestamp = Long.parseLong((String) urlInfo.get("expireTimestamp"));
             long remaining = expireTimestamp - System.currentTimeMillis();
@@ -266,6 +272,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             return "";
         }
     }
+
     private ShortLinkDO getValidShortLink(String shortUrl) {
         ShortLinkDO shortLinkDO = baseMapper.selectOne(Wrappers.lambdaQuery(ShortLinkDO.class)
                 .eq(ShortLinkDO::getShortUrl, shortUrl)
@@ -278,6 +285,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
         return shortLinkDO;
     }
+
     private void updateUrlInfoCache(String gotoKey, String originUrl, Date vailDate) {
         Map<String, String> urlInfo = new HashMap<>();
         urlInfo.put("originUrl", originUrl);
@@ -316,14 +324,14 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     private String getFavicon(String originUrl) {
-            String html = fetchHtml(originUrl);
-            Document doc = Jsoup.parse(html, originUrl);
-            Elements elements = doc.select("link[rel~=icon]");
-            if (!elements.isEmpty()) {
-                return Objects.requireNonNull(elements.first()).absUrl("href");
-            } else {
-                return URI.create(originUrl).resolve("/favicon.ico").toString();
-            }
+        String html = fetchHtml(originUrl);
+        Document doc = Jsoup.parse(html, originUrl);
+        Elements elements = doc.select("link[rel~=icon]");
+        if (!elements.isEmpty()) {
+            return Objects.requireNonNull(elements.first()).absUrl("href");
+        } else {
+            return URI.create(originUrl).resolve("/favicon.ico").toString();
+        }
     }
 
     private String fetchHtml(String originUrl) {
