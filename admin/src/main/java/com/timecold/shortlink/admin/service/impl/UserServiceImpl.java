@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timecold.shortlink.admin.biz.user.UserContext;
 import com.timecold.shortlink.admin.common.constant.RedisKeyConstant;
 import com.timecold.shortlink.admin.common.convention.exception.ClientException;
+import com.timecold.shortlink.admin.common.convention.exception.ServiceException;
 import com.timecold.shortlink.admin.common.enums.UserErrorCodeEnum;
 import com.timecold.shortlink.admin.dao.entity.UserDO;
 import com.timecold.shortlink.admin.dao.mapper.UserMapper;
@@ -56,7 +57,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                 .eq(UserDO::getUsername, UserContext.getUsername());
         UserDO userDO = baseMapper.selectOne(queryWrapper);
         if (userDO == null) {
-            throw new ClientException(UserErrorCodeEnum.USER_NULL);
+            throw new ServiceException(UserErrorCodeEnum.USER_NULL);
         }
         UserRespDTO result = new UserRespDTO();
         BeanUtils.copyProperties(userDO, result);
