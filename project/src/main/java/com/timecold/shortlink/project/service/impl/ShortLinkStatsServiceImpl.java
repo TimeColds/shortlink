@@ -1,20 +1,28 @@
 package com.timecold.shortlink.project.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.timecold.shortlink.project.common.convention.exception.ServiceException;
 import com.timecold.shortlink.project.dao.entity.LinkDailyStatsDO;
+import com.timecold.shortlink.project.dao.entity.LinkLogStatsDO;
 import com.timecold.shortlink.project.dao.mapper.*;
 import com.timecold.shortlink.project.dto.biz.*;
+import com.timecold.shortlink.project.dto.req.ShortLinkLogPageReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkChartStatsRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkDailyStatsRespDTO;
+import com.timecold.shortlink.project.dto.resp.ShortLinkLogPageRespDTO;
 import com.timecold.shortlink.project.service.ShortLinkStatsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -150,6 +158,23 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         shortLinkChartStatsRespDTO.setDeviceStats(deviceDistribution);
         shortLinkChartStatsRespDTO.setNewVisitor(newVisitorCount);
         return shortLinkChartStatsRespDTO;
+    }
+
+    @Override
+    public Page<ShortLinkLogPageRespDTO> getLogStats(ShortLinkLogPageReqDTO requestParam) {
+        LocalDateTime beginDateTime = requestParam.getBeginDate().atStartOfDay();
+        LocalDateTime endDateTime = requestParam.getEndDate().atTime(LocalTime.MAX);
+        LambdaQueryWrapper<LinkLogStatsDO> lambdaQueryWrapper = Wrappers.lambdaQuery(LinkLogStatsDO.class)
+                .eq(LinkLogStatsDO::getShortUrl, requestParam.getShortUrl())
+                .eq(LinkLogStatsDO::getDelFlag, 0)
+                .between(LinkLogStatsDO::getCreateTime, beginDateTime, endDateTime)
+                .orderByDesc(LinkLogStatsDO::getAccessTime);
+        Page<LinkLogStatsDO> linkLogStatsDoPage = linkLogStatsMapper.selectPage(requestParam, lambdaQueryWrapper);
+        return (Page<ShortLinkLogPageRespDTO>) linkLogStatsDoPage.convert(each -> {
+            ShortLinkLogPageRespDTO shortLinkLogPageRespDTO = new ShortLinkLogPageRespDTO();
+            BeanUtils.copyProperties(each, shortLinkLogPageRespDTO);
+            return shortLinkLogPageRespDTO;
+        });
     }
 
 

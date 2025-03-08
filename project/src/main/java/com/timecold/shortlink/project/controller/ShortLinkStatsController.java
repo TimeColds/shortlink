@@ -1,10 +1,13 @@
 package com.timecold.shortlink.project.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.timecold.shortlink.project.common.convention.exception.ClientException;
 import com.timecold.shortlink.project.common.convention.result.Result;
 import com.timecold.shortlink.project.common.convention.result.Results;
+import com.timecold.shortlink.project.dto.req.ShortLinkLogPageReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkChartStatsRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkDailyStatsRespDTO;
+import com.timecold.shortlink.project.dto.resp.ShortLinkLogPageRespDTO;
 import com.timecold.shortlink.project.service.ShortLinkStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +33,12 @@ public class ShortLinkStatsController {
     public Result<ShortLinkChartStatsRespDTO> chartStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
         dateValidation(beginDate, endDate);
         return Results.success(shortLinkStatsService.getChartStats(shortUrl, beginDate, endDate));
+    }
+
+    @GetMapping("/log_stats")
+    public Result<Page<ShortLinkLogPageRespDTO>> logStats(ShortLinkLogPageReqDTO requestParam) {
+        dateValidation(requestParam.getBeginDate(), requestParam.getEndDate());
+        return Results.success(shortLinkStatsService.getLogStats(requestParam));
     }
 
 
