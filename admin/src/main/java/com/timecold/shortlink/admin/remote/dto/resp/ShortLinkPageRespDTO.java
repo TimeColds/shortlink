@@ -1,7 +1,9 @@
 package com.timecold.shortlink.admin.remote.dto.resp;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
@@ -9,6 +11,8 @@ import java.util.Date;
  * 短链接分页返回参数
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class ShortLinkPageRespDTO {
 
     /**
@@ -67,4 +71,25 @@ public class ShortLinkPageRespDTO {
      * 网站标识
      */
     private String favicon;
+
+    private todayStats todayStats;
+
+    private allStats allStats;
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class todayStats {
+        private Long pv;
+        private Long uv;
+        private Long uip;
+    }
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class allStats {
+        private Long pv;
+        private Long uv;
+        private Long uip;
+    }
 }

@@ -5,9 +5,7 @@ import com.timecold.shortlink.admin.biz.user.UserContext;
 import com.timecold.shortlink.admin.common.convention.exception.ServiceException;
 import com.timecold.shortlink.admin.common.convention.result.Result;
 import com.timecold.shortlink.admin.remote.dto.req.*;
-import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkCreateRespDTO;
-import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkGroupCountQueryRespDTO;
-import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
+import com.timecold.shortlink.admin.remote.dto.resp.*;
 import com.timecold.shortlink.admin.remote.service.RemoteShortLinkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
@@ -17,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -133,6 +132,56 @@ public class RemoteShortLinkServiceImpl implements RemoteShortLinkService {
         String remoteUrl = REMOTE_URL + "/delete";
         requestParam.setUid(UserContext.getUserId());
         restTemplate.put(remoteUrl, requestParam);
+    }
+
+    @Override
+    public ShortLinkDailyStatsRespDTO getDailyStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
+        String remoteUrl = REMOTE_URL + "/stats/daily_stats";
+
+        String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
+                .queryParam("shortUrl", shortUrl)
+                .queryParam("beginDate", beginDate)
+                .queryParam("endDate", endDate).toUriString();
+        ShortLinkDailyStatsRespDTO result = restTemplate.getForObject(finalUrl, ShortLinkDailyStatsRespDTO.class);
+        if (result == null) {
+            throw new ServiceException("查询短链失败");
+        }
+        return result;
+    }
+
+    @Override
+    public ShortLinkChartStatsRespDTO getChartStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
+        String remoteUrl = REMOTE_URL + "/stats/chart_stats";
+
+        String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
+                .queryParam("shortUrl", shortUrl)
+                .queryParam("beginDate", beginDate)
+                .queryParam("endDate", endDate).toUriString();
+        ShortLinkChartStatsRespDTO result = restTemplate.getForObject(finalUrl, ShortLinkChartStatsRespDTO.class);
+        if (result == null) {
+            throw new ServiceException("查询短链失败");
+        }
+        return result;
+    }
+
+    @Override
+    public Page<ShortLinkLogPageRespDTO> getLogStats(ShortLinkLogPageReqDTO requestParam) {
+        String remoteUrl = REMOTE_URL + "/stats/log_stats";
+        String finalUrl = UriComponentsBuilder.fromHttpUrl(remoteUrl)
+                .queryParam("shortUrl", requestParam.getShortUrl())
+                .queryParam("beginDate", requestParam.getBeginDate())
+                .queryParam("endDate", requestParam.getEndDate())
+                .queryParam("size", requestParam.getSize())
+                .queryParam("current", requestParam.getCurrent()).toUriString();
+        Page<ShortLinkLogPageRespDTO> result = restTemplate.exchange(finalUrl,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<Page<ShortLinkLogPageRespDTO>>() {
+                }).getBody();
+        if (result == null) {
+            throw new ServiceException("查询短链失败");
+        }
+        return result;
     }
 
 }

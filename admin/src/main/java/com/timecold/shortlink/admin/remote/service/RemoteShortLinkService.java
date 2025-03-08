@@ -2,10 +2,9 @@ package com.timecold.shortlink.admin.remote.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.timecold.shortlink.admin.remote.dto.req.*;
-import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkCreateRespDTO;
-import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkGroupCountQueryRespDTO;
-import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
+import com.timecold.shortlink.admin.remote.dto.resp.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface RemoteShortLinkService {
@@ -75,4 +74,10 @@ public interface RemoteShortLinkService {
      * @param requestParam 删除归档的短链接请求参数
      */
     void archiveRemove(ArchiveRemoveReqDTO requestParam);
+
+    ShortLinkDailyStatsRespDTO getDailyStats(String shortUrl, LocalDate beginDate, LocalDate endDate);
+
+    ShortLinkChartStatsRespDTO getChartStats(String shortUrl, LocalDate beginDate, LocalDate endDate);
+
+    Page<ShortLinkLogPageRespDTO> getLogStats(ShortLinkLogPageReqDTO requestParam);
 }
