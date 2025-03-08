@@ -1,8 +1,6 @@
 package com.timecold.shortlink.project.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.timecold.shortlink.project.common.convention.result.Result;
-import com.timecold.shortlink.project.common.convention.result.Results;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.timecold.shortlink.project.dto.req.ArchiveRecoverReqDTO;
 import com.timecold.shortlink.project.dto.req.ArchiveRemoveReqDTO;
 import com.timecold.shortlink.project.dto.req.ArchiveReqDTO;
@@ -26,29 +24,26 @@ public class ArchiveController {
      * 归档短链接
      */
     @PutMapping("/archive")
-    public Result<Void> archiveShortLink(@RequestBody ArchiveReqDTO requestParam) {
+    public void archiveShortLink(@RequestBody ArchiveReqDTO requestParam) {
         archiveService.archiveShortLink(requestParam);
-        return Results.success();
     }
 
     /**
      * 分页查询归档的短链接
      */
     @GetMapping("/archived_links")
-    public Result<IPage<ShortLinkPageRespDTO>> pageArchivedShortLink(ArchivedPageReqDTO requestParam) {
-        return Results.success(archiveService.pageArchivedShortLink(requestParam));
+    public Page<ShortLinkPageRespDTO> pageArchivedShortLink(ArchivedPageReqDTO requestParam) {
+        return archiveService.pageArchivedShortLink(requestParam);
     }
 
     @PutMapping("/archive_recover")
-    public Result<Void> recoverShortLink(@RequestBody ArchiveRecoverReqDTO requestParam) {
+    public void recoverShortLink(@RequestBody ArchiveRecoverReqDTO requestParam) {
         archiveService.recoverShortLink(requestParam);
-        return Results.success();
     }
 
     @PutMapping("/delete")
-    public Result<Void> archiveRemove(@RequestBody ArchiveRemoveReqDTO requestParam) {
+    public void archiveRemove(@RequestBody ArchiveRemoveReqDTO requestParam) {
         archiveService.archiveRemove(requestParam);
-        return Results.success();
     }
 }
 

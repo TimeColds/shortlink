@@ -1,8 +1,6 @@
 package com.timecold.shortlink.project.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.timecold.shortlink.project.common.convention.result.Result;
-import com.timecold.shortlink.project.common.convention.result.Results;
 import com.timecold.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import com.timecold.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import com.timecold.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
@@ -26,8 +24,8 @@ public class ShortLinkController {
      * 创建短链接
      */
     @PostMapping("/create")
-    public Result<ShortLinkCreateRespDTO> createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam) {
-        return Results.success(shortLinkService.createShortLink(requestParam));
+    public ShortLinkCreateRespDTO createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam) {
+        return shortLinkService.createShortLink(requestParam);
     }
 
 
@@ -35,32 +33,31 @@ public class ShortLinkController {
      * 修改短链接
      */
     @PutMapping("/update")
-    public Result<Void> updateShortLink(@RequestBody ShortLinkUpdateReqDTO requestParam) {
+    public void updateShortLink(@RequestBody ShortLinkUpdateReqDTO requestParam) {
         shortLinkService.updateShortLink(requestParam);
-        return Results.success();
     }
 
     /**
      * 分页查询短链接
      */
     @GetMapping("/page")
-    public Result<Page<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam) {
-        return Results.success(shortLinkService.pageShortLink(requestParam));
+    public Page<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO requestParam) {
+        return shortLinkService.pageShortLink(requestParam);
     }
 
     /**
      * 查询短链接分组内数量
      */
     @GetMapping("/count")
-    public Result<List<ShortLinkGroupCountQueryRespDTO>> listGroupShortLinkCount(@RequestParam("requestParam") Long uid) {
-        return Results.success(shortLinkService.listGroupShortLinkCount(uid));
+    public List<ShortLinkGroupCountQueryRespDTO> listGroupShortLinkCount(@RequestParam("requestParam") Long uid) {
+        return shortLinkService.listGroupShortLinkCount(uid);
     }
 
     /**
      * 根据 URL 获取对应网站的标题
      */
     @GetMapping("/title")
-    public Result<String> getTitleByUrl(@RequestParam("url") String url) {
-        return Results.success(shortLinkService.getTitleByUrl(url));
+    public String getTitleByUrl(@RequestParam("url") String url) {
+        return shortLinkService.getTitleByUrl(url);
     }
 }
