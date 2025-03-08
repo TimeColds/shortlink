@@ -20,6 +20,7 @@ import com.timecold.shortlink.admin.dto.resp.UserRespDTO;
 import com.timecold.shortlink.admin.service.GroupService;
 import com.timecold.shortlink.admin.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
@@ -140,6 +141,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         }
         String loginKey = RedisKeyConstant.USER_LOGIN_KEY + requestParam.getUsername();
         Boolean hasLogin = stringRedisTemplate.hasKey(loginKey);
+        Map<Object, Object> hasLoginMap = stringRedisTemplate.opsForHash().entries(loginKey);
+        if (MapUtils.isNotEmpty(hasLoginMap)) {
+            stringRedisTemplate.expire(loginKey, 30L, TimeUnit.DAYS);
+            String token = hasLoginMap.keySet().stream()
+                    .findFirst()
+                    .map(Object::toString)
+                    .orElseThrow(() -> new ClientException("用户登录错误"));
+            return new UserLoginRespDTO(token);
+        }
         if (Boolean.TRUE.equals(hasLogin)) {
             throw new ClientException("用户已登录");
         }

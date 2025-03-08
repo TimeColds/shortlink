@@ -10,7 +10,9 @@ import com.google.common.net.InetAddresses;
 import com.timecold.shortlink.project.common.constant.RedisKeyConstant;
 import com.timecold.shortlink.project.common.convention.exception.ClientException;
 import com.timecold.shortlink.project.common.convention.exception.ServiceException;
+import com.timecold.shortlink.project.dao.entity.LinkDailyStatsDO;
 import com.timecold.shortlink.project.dao.entity.ShortLinkDO;
+import com.timecold.shortlink.project.dao.mapper.LinkDailyStatsMapper;
 import com.timecold.shortlink.project.dao.mapper.ShortLinkMapper;
 import com.timecold.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import com.timecold.shortlink.project.dto.req.ShortLinkPageReqDTO;
@@ -36,9 +38,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.timecold.shortlink.project.common.constant.RedisKeyConstant.*;
 
 
 /**
@@ -56,6 +61,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final StringRedisTemplate stringRedisTemplate;
 
     private final RestTemplate restTemplate;
+    private final LinkDailyStatsMapper linkDailyStatsMapper;
 
     public static final long DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
 
@@ -101,11 +107,66 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .eq(ShortLinkDO::getEnableStatus, 0)
                 .eq(ShortLinkDO::getDelFlag, 0)
                 .orderByDesc(ShortLinkDO::getUpdateTime);
+        LocalDate now = LocalDate.now();
         Page<ShortLinkDO> resultPage = baseMapper.selectPage(requestParam, queryWrapper);
-        return (Page<ShortLinkPageRespDTO>) resultPage.convert(each -> {
+        if (resultPage.getRecords().isEmpty()) {
+            return new Page<>();
+        }
+        List<ShortLinkDO> records = resultPage.getRecords();
+        List<String> shortUrls = records.stream()
+                .map(ShortLinkDO::getShortUrl)
+                .collect(Collectors.toList());
+        QueryWrapper<LinkDailyStatsDO> linkDailyStatsDOQueryWrapper = Wrappers.query(LinkDailyStatsDO.class)
+                .select("short_url, " +
+                        "SUM(pv) AS histPv," +
+                        "SUM(uv) AS histUv," +
+                        "SUM(uip) AS histUip")
+                .in("short_url", shortUrls)
+                .eq("del_flag", 0)
+                .lt("stats_date", now)
+                .groupBy("short_url");
+        List<Map<String, Object>> list = linkDailyStatsMapper.selectMaps(linkDailyStatsDOQueryWrapper);
+        Map<String, Map<String, Object>> shortUrlStatsMap = new HashMap<>();
+        for (Map<String, Object> item : list) {
+            String shortUrl = (String) item.get("short_url");
+            shortUrlStatsMap.put(shortUrl, item);
+        }
+        Map<String, ShortLinkPageRespDTO.todayStats> todayStatsMap = new HashMap<>();
+        Map<String, ShortLinkPageRespDTO.allStats> allStatsMap = new HashMap<>();
+        for (ShortLinkDO record : records) {
+            String shortUrl = record.getShortUrl();
+
+            Long histPv = 0L;
+            Long histUv = 0L;
+            Long histUip = 0L;
+
+            if (shortUrlStatsMap.containsKey(shortUrl)) {
+                Map<String, Object> statsData = shortUrlStatsMap.get(shortUrl);
+                histPv = Long.parseLong(statsData.get("histPv").toString());
+                histUv = Long.parseLong(statsData.get("histUv").toString());
+                histUip = Long.parseLong(statsData.get("histUip").toString());
+            }
+
+            String pvKey = LINK_PV_KEY_PREFIX + shortUrl + ":" + now;
+            String uvKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + now;
+            String uipKey = LINK_UIP_KEY_PREFIX + shortUrl + ":" + now;
+            Object pvResult = stringRedisTemplate.opsForHash().get(pvKey, "total");
+            Long todayPv = pvResult != null ? Long.parseLong(pvResult.toString()) : 0L;
+            Long todayUv = stringRedisTemplate.opsForHyperLogLog().size(uvKey);
+            Long todayUip = stringRedisTemplate.opsForHyperLogLog().size(uipKey);
+
+            todayStatsMap.put(shortUrl, new ShortLinkPageRespDTO.todayStats(todayPv, todayUv, todayUip));
+            allStatsMap.put(shortUrl, new ShortLinkPageRespDTO.allStats(histPv + todayPv, histUv + todayUv, histUip + todayUip));
+        }
+        return (Page<ShortLinkPageRespDTO>) resultPage.convert(record -> {
+            String shortUrl = record.getShortUrl();
             ShortLinkPageRespDTO shortLinkPageRespDTO = new ShortLinkPageRespDTO();
-            BeanUtils.copyProperties(each, shortLinkPageRespDTO);
-            shortLinkPageRespDTO.setDomain("http://" + each.getDomain());
+            BeanUtils.copyProperties(record, shortLinkPageRespDTO);
+            shortLinkPageRespDTO.setDomain("http://" + record.getDomain());
+            ShortLinkPageRespDTO.todayStats todayStats = todayStatsMap.get(shortUrl);
+            shortLinkPageRespDTO.setTodayStats(todayStats);
+            ShortLinkPageRespDTO.allStats allStats = allStatsMap.get(shortUrl);
+            shortLinkPageRespDTO.setAllStats(allStats);
             return shortLinkPageRespDTO;
         });
     }
