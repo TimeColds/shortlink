@@ -85,8 +85,10 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         Long uvType = stringRedisTemplate.execute((RedisCallback<Long>) connection ->
                 connection.stringCommands().bitPos(uvTypeKey.getBytes(), true, Range.unbounded())
         );
-        if (uvType == -1) {
+        if (uvType == null || uvType == -1) {
             linkLogStatsDO.setVisitorType(0);
+            String uvNewKey = LINK_UV_KEY_PREFIX + shortUrl + ":new:" + dateStr;
+            stringRedisTemplate.opsForValue().increment(uvNewKey, 1);
         } else {
             linkLogStatsDO.setVisitorType(1);
         }

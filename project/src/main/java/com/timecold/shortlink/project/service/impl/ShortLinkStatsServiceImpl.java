@@ -3,10 +3,8 @@ package com.timecold.shortlink.project.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.timecold.shortlink.project.common.convention.exception.ServiceException;
 import com.timecold.shortlink.project.dao.entity.LinkDailyStatsDO;
-import com.timecold.shortlink.project.dao.mapper.LinkDailyStatsMapper;
-import com.timecold.shortlink.project.dao.mapper.LinkLogStatsMapper;
-import com.timecold.shortlink.project.dto.biz.ShortLinkHourlyStatsDTO;
-import com.timecold.shortlink.project.dto.biz.ShortLinkWeeklyStatsDTO;
+import com.timecold.shortlink.project.dao.mapper.*;
+import com.timecold.shortlink.project.dto.biz.*;
 import com.timecold.shortlink.project.dto.resp.ShortLinkChartStatsRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkDailyStatsRespDTO;
 import com.timecold.shortlink.project.service.ShortLinkStatsService;
@@ -17,10 +15,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,6 +30,9 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
     private final StringRedisTemplate stringRedisTemplate;
     private final LinkLogStatsMapper linkLogStatsMapper;
     private final LinkDailyStatsMapper linkDailyStatsMapper;
+    private final LinkLocationStatsMapper linkLocationStatsMapper;
+    private final LinkPlatformStatsMapper linkPlatformStatsMapper;
+    private final LinkVisitorStatsMapper linkVisitorStatsMapper;
 
     @Override
     public ShortLinkDailyStatsRespDTO getDailyStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
@@ -114,7 +112,13 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         }
         long[] hourlyDistribution = new long[24];
         long[] weekdayDistribution = new long[7];
+
         LocalDate today = LocalDate.now();
+        List<ShortLinkChartStatsRespDTO.ProvinceStats> provinceDistribution = provinceStats(shortUrl, beginDate, endDate, today);
+        List<ShortLinkChartStatsRespDTO.BrowserStats> browserDistribution = browserStats(shortUrl, beginDate, endDate, today);
+        List<ShortLinkChartStatsRespDTO.OsStats> osDistribution = osStats(shortUrl, beginDate, endDate, today);
+        List<ShortLinkChartStatsRespDTO.DeviceStats> deviceDistribution = deviceStats(shortUrl, beginDate, endDate, today);
+        Long newVisitorCount = newVisitorStats(shortUrl, beginDate, endDate, today);
         if (beginDate.isBefore(today) || endDate.isBefore(today)) {
             LocalDate newEndDate = endDate.isEqual(today) ? endDate.minusDays(1) : endDate;
             hourlyDistribution = hourlyStats(shortUrl, beginDate, newEndDate);
@@ -136,16 +140,17 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
             }
         }
         ShortLinkChartStatsRespDTO shortLinkChartStatsRespDTO = new ShortLinkChartStatsRespDTO();
-        List<Long> hourStats = Arrays.stream(hourlyDistribution)
-                .boxed()
-                .collect(Collectors.toList());
+        List<Long> hourStats = Arrays.stream(hourlyDistribution).boxed().collect(Collectors.toList());
         List<Long> weekdayStats = Arrays.stream(weekdayDistribution).boxed().collect(Collectors.toList());
         shortLinkChartStatsRespDTO.setHourStats(hourStats);
         shortLinkChartStatsRespDTO.setWeekdayStats(weekdayStats);
+        shortLinkChartStatsRespDTO.setProvinceStats(provinceDistribution);
+        shortLinkChartStatsRespDTO.setBrowserStats(browserDistribution);
+        shortLinkChartStatsRespDTO.setOsStats(osDistribution);
+        shortLinkChartStatsRespDTO.setDeviceStats(deviceDistribution);
+        shortLinkChartStatsRespDTO.setNewVisitor(newVisitorCount);
         return shortLinkChartStatsRespDTO;
     }
-
-
 
 
     private long[] weeklyStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
@@ -157,6 +162,7 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
         }
         return weekdayDistribution;
     }
+
     private long[] hourlyStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
         List<ShortLinkHourlyStatsDTO> hourlyStatsDTOList = linkDailyStatsMapper.getHourlyStats(shortUrl, beginDate, endDate);
         long[] hourlyDistribution = new long[24];
@@ -165,6 +171,145 @@ public class ShortLinkStatsServiceImpl implements ShortLinkStatsService {
             hourlyDistribution[hourIndex] += hourlyStats.getPv();
         }
         return hourlyDistribution;
+    }
+
+    private List<ShortLinkChartStatsRespDTO.ProvinceStats> provinceStats(String shortUrl, LocalDate beginDate, LocalDate endDate, LocalDate today) {
+        List<ShortLinkChartStatsRespDTO.ProvinceStats> provinceStatsList = new ArrayList<>();
+        LocalDate newEndDate = endDate.isEqual(today) ? endDate.minusDays(1) : endDate;
+        List<ShortLinkProvinceStatsDTO> provinceStatsDTOList = linkLocationStatsMapper.getProvinceStats(shortUrl, beginDate, newEndDate);
+        HashMap<String, Long> provinceMap = new HashMap<>();
+        for (ShortLinkProvinceStatsDTO provinceStat : provinceStatsDTOList) {
+            provinceMap.put(provinceStat.getProvince(), provinceStat.getCount());
+        }
+        if (!today.isBefore(beginDate) && !today.isAfter(endDate)) {
+            String provinceKey = LINK_LOCATION_KEY_PREFIX + shortUrl + ":" + today;
+            Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(provinceKey);
+            for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                String province = (String) entry.getKey();
+                Long count = Long.parseLong((String) entry.getValue());
+                provinceMap.merge(province, count, Long::sum);
+            }
+        }
+        long sum = provinceMap.values().stream().mapToLong(Long::longValue).sum();
+        for (Map.Entry<String, Long> stringLongEntry : provinceMap.entrySet()) {
+            String key = stringLongEntry.getKey();
+            Long value = stringLongEntry.getValue();
+            ShortLinkChartStatsRespDTO.ProvinceStats provinceStats = new ShortLinkChartStatsRespDTO.ProvinceStats();
+            provinceStats.setProvince(key);
+            provinceStats.setCount(value);
+            provinceStats.setRatio(Math.round((double) value / sum * 100.0) / 100.0);
+            provinceStatsList.add(provinceStats);
+        }
+        return provinceStatsList;
+    }
+
+    private List<ShortLinkChartStatsRespDTO.BrowserStats> browserStats(String shortUrl, LocalDate beginDate, LocalDate endDate, LocalDate today) {
+        List<ShortLinkChartStatsRespDTO.BrowserStats> browserStatsList = new ArrayList<>();
+        LocalDate newEndDate = endDate.isEqual(today) ? endDate.minusDays(1) : endDate;
+        List<ShortLinkBrowserStatsDTO> browserStatsDTOList = linkPlatformStatsMapper.getBrowserStats(shortUrl, beginDate, newEndDate);
+        HashMap<String, Long> browserMap = new HashMap<>();
+        for (ShortLinkBrowserStatsDTO browserStat : browserStatsDTOList) {
+            browserMap.put(browserStat.getBrowser(), browserStat.getCount());
+        }
+        if (!today.isBefore(beginDate) && !today.isAfter(endDate)) {
+            String browserKey = LINK_PLATFORM_KEY_PREFIX + shortUrl + ":" + today;
+            Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(browserKey);
+            for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                String platform = (String) entry.getKey();
+                String[] split = platform.split(":");
+                String browser = split[2];
+                Long count = Long.parseLong((String) entry.getValue());
+                browserMap.merge(browser, count, Long::sum);
+            }
+        }
+        long sum = browserMap.values().stream().mapToLong(Long::longValue).sum();
+        for (Map.Entry<String, Long> stringLongEntry : browserMap.entrySet()) {
+            String key = stringLongEntry.getKey();
+            Long value = stringLongEntry.getValue();
+            ShortLinkChartStatsRespDTO.BrowserStats browserStats = new ShortLinkChartStatsRespDTO.BrowserStats();
+            browserStats.setBrowser(key);
+            browserStats.setCount(value);
+            browserStats.setRatio(Math.round((double) value / sum * 100.0) / 100.0);
+            browserStatsList.add(browserStats);
+        }
+        return browserStatsList;
+    }
+
+    private List<ShortLinkChartStatsRespDTO.OsStats> osStats(String shortUrl, LocalDate beginDate, LocalDate endDate, LocalDate today) {
+        List<ShortLinkChartStatsRespDTO.OsStats> osStatsList = new ArrayList<>();
+        LocalDate newEndDate = endDate.isEqual(today) ? endDate.minusDays(1) : endDate;
+        List<ShortLinkOsStatsDTO> osStatsDTOList = linkPlatformStatsMapper.getOsStats(shortUrl, beginDate, newEndDate);
+        HashMap<String, Long> osMap = new HashMap<>();
+        for (ShortLinkOsStatsDTO osStat : osStatsDTOList) {
+            osMap.put(osStat.getOs(), osStat.getCount());
+        }
+        if (!today.isBefore(beginDate) && !today.isAfter(endDate)) {
+            String osKey = LINK_PLATFORM_KEY_PREFIX + shortUrl + ":" + today;
+            Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(osKey);
+            for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                String platform = (String) entry.getKey();
+                String[] split = platform.split(":");
+                String os = split[1];
+                Long count = Long.parseLong((String) entry.getValue());
+                osMap.merge(os, count, Long::sum);
+            }
+        }
+        long sum = osMap.values().stream().mapToLong(Long::longValue).sum();
+        for (Map.Entry<String, Long> stringLongEntry : osMap.entrySet()) {
+            String key = stringLongEntry.getKey();
+            Long value = stringLongEntry.getValue();
+            ShortLinkChartStatsRespDTO.OsStats osStats = new ShortLinkChartStatsRespDTO.OsStats();
+            osStats.setOs(key);
+            osStats.setCount(value);
+            osStats.setRatio(Math.round((double) value / sum * 100.0) / 100.0);
+            osStatsList.add(osStats);
+        }
+        return osStatsList;
+    }
+
+    private List<ShortLinkChartStatsRespDTO.DeviceStats> deviceStats(String shortUrl, LocalDate beginDate, LocalDate endDate, LocalDate today) {
+        List<ShortLinkChartStatsRespDTO.DeviceStats> deviceStatsList = new ArrayList<>();
+        LocalDate newEndDate = endDate.isEqual(today) ? endDate.minusDays(1) : endDate;
+        List<ShortLinkDeviceStatsDTO> deviceStatsDTOList = linkPlatformStatsMapper.getDeviceStats(shortUrl, beginDate, newEndDate);
+        HashMap<String, Long> deviceMap = new HashMap<>();
+        for (ShortLinkDeviceStatsDTO deviceStat : deviceStatsDTOList) {
+            deviceMap.put(deviceStat.getDevice(), deviceStat.getCount());
+        }
+        if (!today.isBefore(beginDate) && !today.isAfter(endDate)) {
+            String deviceKey = LINK_PLATFORM_KEY_PREFIX + shortUrl + ":" + today;
+            Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(deviceKey);
+            for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                String platform = (String) entry.getKey();
+                String[] split = platform.split(":");
+                String device = split[0];
+                Long count = Long.parseLong((String) entry.getValue());
+                deviceMap.merge(device, count, Long::sum);
+            }
+        }
+        long sum = deviceMap.values().stream().mapToLong(Long::longValue).sum();
+        for (Map.Entry<String, Long> stringLongEntry : deviceMap.entrySet()) {
+            String key = stringLongEntry.getKey();
+            Long value = stringLongEntry.getValue();
+            ShortLinkChartStatsRespDTO.DeviceStats deviceStats = new ShortLinkChartStatsRespDTO.DeviceStats();
+            deviceStats.setDevice(key);
+            deviceStats.setCount(value);
+            deviceStats.setRatio(Math.round((double) value / sum * 100.0) / 100.0);
+            deviceStatsList.add(deviceStats);
+        }
+        return deviceStatsList;
+    }
+
+    private Long newVisitorStats(String shortUrl, LocalDate beginDate, LocalDate endDate, LocalDate today) {
+        LocalDate newEndDate = endDate.isEqual(today) ? endDate.minusDays(1) : endDate;
+        Long newVisitorCount = linkVisitorStatsMapper.getVisitorStats(shortUrl, beginDate, newEndDate);
+        newVisitorCount = newVisitorCount == null ? 0L : newVisitorCount;
+        if (!today.isBefore(beginDate) && !today.isAfter(endDate)) {
+            String newVisitorKey = LINK_UV_KEY_PREFIX + shortUrl + ":new:" + today;
+            String uvNewValue = stringRedisTemplate.opsForValue().get(newVisitorKey);
+            long newUv = uvNewValue != null ? Long.parseLong(uvNewValue) : 0L;
+            newVisitorCount += newUv;
+        }
+        return newVisitorCount;
     }
 
 }

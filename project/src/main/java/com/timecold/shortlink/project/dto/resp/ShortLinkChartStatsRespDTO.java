@@ -10,11 +10,11 @@ public class ShortLinkChartStatsRespDTO {
 
     private List<Long> weekdayStats;
     private List<Long> hourStats;
-    private List<OsStats> osStats;
+    private List<ProvinceStats> provinceStats;
     private List<BrowserStats> browserStats;
+    private List<OsStats> osStats;
     private List<DeviceStats> deviceStats;
-    private List<LocationStats> locationStats;
-    private Integer visitorType;
+    private Long newVisitor;
 
     @Data
     public static class OsStats{
@@ -35,8 +35,8 @@ public class ShortLinkChartStatsRespDTO {
         private Double ratio;
     }
     @Data
-    public static class LocationStats {
-        private String location;
+    public static class ProvinceStats {
+        private String province;
         private Long count;
         private Double ratio;
     }

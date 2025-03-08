@@ -1,7 +1,9 @@
 package com.timecold.shortlink.project.mq.consumer;
 
 import com.timecold.shortlink.project.dao.entity.LinkDailyStatsDO;
+import com.timecold.shortlink.project.dao.entity.LinkVisitorStatsDO;
 import com.timecold.shortlink.project.dao.mapper.LinkDailyStatsMapper;
+import com.timecold.shortlink.project.dao.mapper.LinkVisitorStatsMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -22,6 +24,7 @@ public class ShortLinkDailyStatsConsumer implements StreamListener<String, MapRe
 
     private final StringRedisTemplate stringRedisTemplate;
     private final LinkDailyStatsMapper linkDailyStatsMapper;
+    private final LinkVisitorStatsMapper linkVisitorStatsMapper;
 
     @Override
     public void onMessage(MapRecord<String, String, String> message) {
@@ -35,6 +38,16 @@ public class ShortLinkDailyStatsConsumer implements StreamListener<String, MapRe
             String pvKey = LINK_PV_KEY_PREFIX + shortUrl + ":" + dateStr;
             String uvKey = LINK_UV_KEY_PREFIX + shortUrl + ":" + dateStr;
             String uipKey = LINK_UIP_KEY_PREFIX + shortUrl + ":" + dateStr;
+
+            String uvNewKey = LINK_UV_KEY_PREFIX + shortUrl + ":new:" + dateStr;
+            String uvNewValue = stringRedisTemplate.opsForValue().get(uvNewKey);
+            Long newUv = uvNewValue != null ? Long.parseLong(uvNewValue) : 0L;
+            LinkVisitorStatsDO visitorStats = LinkVisitorStatsDO.builder()
+                    .shortUrl(shortUrl)
+                    .statsDate(date)
+                    .newUv(newUv)
+                    .build();
+            linkVisitorStatsMapper.saveOrUpdate(visitorStats);
 
             Object pvValue = stringRedisTemplate.opsForHash().get(pvKey, hour.toString());
             Long pv = pvValue != null ? Long.parseLong(pvValue.toString()) : 0L;
