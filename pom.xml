@@ -26,7 +26,7 @@
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <dozer-core.version>6.5.2</dozer-core.version>
         <hutool-all.version>5.8.20</hutool-all.version>
-        <redisson.version>3.21.3</redisson.version>
+        <redisson.version>3.37.0</redisson.version>
         <httpclient5.version>5.3.1</httpclient5.version>
         <yauaa.version>7.28.1</yauaa.version>
         <jsoup.version>1.18.1</jsoup.version>
