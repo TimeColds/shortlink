@@ -1,6 +1,7 @@
 package com.timecold.shortlink.project.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timecold.shortlink.project.common.convention.exception.ServiceException;
 import com.timecold.shortlink.project.dao.entity.LinkLogStatsDO;
@@ -18,6 +19,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -158,22 +160,25 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
     }
 
     private String obtainLocation(String ip) {
-//        String amapApi = "https://restapi.amap.com/v3/ip";
-//        String finalUrl = UriComponentsBuilder.fromHttpUrl(amapApi)
-//                .queryParam("key", amapKey)
-//                .queryParam("ip", ip).build().toUriString();
-//        String locationJson = restTemplate.getForObject(finalUrl, String.class);
-//        try {
-//            Map<String, String> map = objectMapper.readValue(locationJson, new TypeReference<>() {});
-//            String infoCode = map.get("infocode");
-//            if (infoCode.equals("10000")) {
-//                return "中国" + map.get("province") + map.get("city");
-//            } else {
-//                return null;
-//            }
-//        } catch (JsonProcessingException e) {
-//            log.error("获取地理位置失败", e);
-//        }
+        String amapApi = "https://restapi.amap.com/v3/ip";
+        String finalUrl = UriComponentsBuilder.fromHttpUrl(amapApi)
+                .queryParam("key", amapKey)
+                .queryParam("ip", ip).build().toUriString();
+        String locationJson = restTemplate.getForObject(finalUrl, String.class);
+        try {
+            Map<String, Object> map = objectMapper.readValue(locationJson, new TypeReference<>() {});
+            String infoCode = (String) map.get("infocode");
+            if (infoCode.equals("10000")) {
+                if (map.get("province") == null || map.get("city") == null) {
+                    return "中国";
+                }
+                return "中国-" + map.get("province") + "-" + map.get("city");
+            } else {
+                return null;
+            }
+        } catch (JsonProcessingException e) {
+            log.error("获取地理位置失败", e);
+        }
         return "中国";
     }
 }

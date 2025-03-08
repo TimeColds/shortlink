@@ -20,6 +20,6 @@ short-link:
   domain:
     default: timecold.xzy
 gaode:
-  api-key: ${GAODE_API_KEY}
+  api-key: ${API_TOKEN}
 
 
