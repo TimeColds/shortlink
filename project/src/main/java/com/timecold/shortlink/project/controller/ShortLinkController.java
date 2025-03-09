@@ -1,5 +1,6 @@
 package com.timecold.shortlink.project.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.timecold.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import com.timecold.shortlink.project.dto.req.ShortLinkPageReqDTO;
@@ -7,6 +8,7 @@ import com.timecold.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import com.timecold.shortlink.project.dto.resp.ShortLinkPageRespDTO;
+import com.timecold.shortlink.project.handler.CustomBlockHandler;
 import com.timecold.shortlink.project.service.ShortLinkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +26,11 @@ public class ShortLinkController {
      * 创建短链接
      */
     @PostMapping("/create")
+    @SentinelResource(
+            value = "create_short-link",
+            blockHandler = "createShortLinkBlockHandlerMethod",
+            blockHandlerClass = CustomBlockHandler.class
+    )
     public ShortLinkCreateRespDTO createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam) {
         return shortLinkService.createShortLink(requestParam);
     }
