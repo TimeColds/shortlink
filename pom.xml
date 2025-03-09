@@ -14,21 +14,24 @@
         <module>gateway</module>
     </modules>
     <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
         <spring-boot.version>3.0.7</spring-boot.version>
         <spring-cloud.version>2022.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0-RC2</spring-cloud-alibaba.version>
-        <mybatis-spring-boot-starter.version>3.0.2</mybatis-spring-boot-starter.version>
+        <mybatis-plus-spring-boot3-starter.version>3.5.7</mybatis-plus-spring-boot3-starter.version>
         <guava.version>33.3.1-jre</guava.version>
-        <shardingsphere.version>5.3.2</shardingsphere.version>
+        <shardingsphere-jdbc.version>5.3.2</shardingsphere-jdbc.version>
         <jjwt.version>0.9.1</jjwt.version>
-        <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <dozer-core.version>6.5.2</dozer-core.version>
-        <hutool-all.version>5.8.20</hutool-all.version>
+        <hutool-core.version>5.8.29</hutool-core.version>
         <redisson.version>3.37.0</redisson.version>
         <httpclient5.version>5.3.1</httpclient5.version>
         <yauaa.version>7.28.1</yauaa.version>
         <jsoup.version>1.18.1</jsoup.version>
+        <snakeyaml.version>1.33</snakeyaml.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
     </properties>
 
@@ -66,14 +69,14 @@
 
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-boot-starter</artifactId>
-                <version>${mybatis-plus.version}</version>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus-spring-boot3-starter.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.shardingsphere</groupId>
                 <artifactId>shardingsphere-jdbc-core</artifactId>
-                <version>${shardingsphere.version}</version>
+                <version>${shardingsphere-jdbc.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.google.guava</groupId>
@@ -81,6 +84,11 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+<!--            <dependency>-->
+<!--                <groupId>org.yaml</groupId>-->
+<!--                <artifactId>snakeyaml</artifactId>-->
+<!--                <version>${snakeyaml.version}</version>-->
+<!--            </dependency>-->
 
 <!--            <dependency>-->
 <!--                <groupId>io.jsonwebtoken</groupId>-->
@@ -122,8 +130,8 @@
 
             <dependency>
                 <groupId>cn.hutool</groupId>
-                <artifactId>hutool-all</artifactId>
-                <version>${hutool-all.version}</version>
+                <artifactId>hutool-core</artifactId>
+                <version>${hutool-core.version}</version>
             </dependency>
 
             <dependency>
@@ -133,18 +141,29 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
             </plugin>
         </plugins>
     </build>
+
+    <!--    <build>-->
+<!--        <plugins>-->
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-compiler-plugin</artifactId>-->
+<!--                <version>3.6.1</version>-->
+<!--                <configuration>-->
+<!--                    <source>17</source>-->
+<!--                    <target>17</target>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+<!--        </plugins>-->
+<!--    </build>-->
 
 </project>
