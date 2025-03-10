@@ -12,8 +12,8 @@ import com.timecold.shortlink.admin.dao.mapper.GroupMapper;
 import com.timecold.shortlink.admin.dto.req.ShortLinkGroupSortReqDTO;
 import com.timecold.shortlink.admin.dto.req.ShortLinkGroupUpdateReqDTO;
 import com.timecold.shortlink.admin.dto.resp.ShortLinkGroupRespDTO;
+import com.timecold.shortlink.admin.remote.feign.ShortLinkFeignClient;
 import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkGroupCountQueryRespDTO;
-import com.timecold.shortlink.admin.remote.service.RemoteShortLinkService;
 import com.timecold.shortlink.admin.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implements GroupService {
 
-    private final RemoteShortLinkService remoteShortLinkService;
+    private final ShortLinkFeignClient shortLinkFeignClient;
 
     @Override
     public void saveGroup(String groupName) {
@@ -60,7 +60,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 .eq(GroupDO::getDelFlag, 0)
                 .orderByDesc(Arrays.asList(GroupDO::getSortOrder, GroupDO::getUpdateTime));
         List<GroupDO> groupDOList = baseMapper.selectList(queryWrapper);
-        List<ShortLinkGroupCountQueryRespDTO> countList = remoteShortLinkService.listGroupShortLinkCount();
+        List<ShortLinkGroupCountQueryRespDTO> countList = shortLinkFeignClient.listGroupShortLinkCount(UserContext.getUserId());
         Map<Long, Long> gidCountMap = countList.stream().collect(Collectors.toMap(
                 ShortLinkGroupCountQueryRespDTO::getGid,
                 ShortLinkGroupCountQueryRespDTO::getShortLinkCount));

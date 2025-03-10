@@ -56,7 +56,7 @@ public class ShortLinkController {
      * 查询短链接分组内数量
      */
     @GetMapping("/count")
-    public List<ShortLinkGroupCountQueryRespDTO> listGroupShortLinkCount(@RequestParam("requestParam") Long uid) {
+    public List<ShortLinkGroupCountQueryRespDTO> listGroupShortLinkCount(@RequestParam("uid") Long uid) {
         return shortLinkService.listGroupShortLinkCount(uid);
     }
 

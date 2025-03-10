@@ -1,13 +1,14 @@
 package com.timecold.shortlink.admin.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.timecold.shortlink.admin.biz.user.UserContext;
 import com.timecold.shortlink.admin.common.convention.result.Result;
 import com.timecold.shortlink.admin.common.convention.result.Results;
 import com.timecold.shortlink.admin.remote.dto.req.ArchiveRecoverReqDTO;
-import com.timecold.shortlink.admin.remote.dto.req.ArchiveReqDTO;
 import com.timecold.shortlink.admin.remote.dto.req.ArchiveRemoveReqDTO;
+import com.timecold.shortlink.admin.remote.dto.req.ArchiveReqDTO;
 import com.timecold.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
-import com.timecold.shortlink.admin.remote.service.RemoteShortLinkService;
+import com.timecold.shortlink.admin.remote.feign.ShortLinkFeignClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,13 +20,14 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ArchiveController {
 
-    private final RemoteShortLinkService remoteShortLinkService;
+    private final ShortLinkFeignClient shortLinkFeignClient;
     /**
      * 归档短链接
      */
     @PutMapping("/archive")
     public Result<Void> archiveShortLink(@RequestBody ArchiveReqDTO requestParam) {
-        remoteShortLinkService.archiveShortLink(requestParam);
+        requestParam.setUid(UserContext.getUserId());
+        shortLinkFeignClient.archiveShortLink(requestParam);
         return Results.success();
     }
 
@@ -34,18 +36,20 @@ public class ArchiveController {
      */
     @GetMapping("/archived_links")
     public Result<Page<ShortLinkPageRespDTO>> pageArchivedShortLink(@RequestParam Long size, @RequestParam Long current) {
-        return Results.success(remoteShortLinkService.pageArchivedShortLink(size, current));
+        return Results.success(shortLinkFeignClient.pageArchivedShortLink(size, current, UserContext.getUserId()));
     }
 
     @PutMapping("/archive_recover")
     public Result<Void> recoverShortLink(@RequestBody ArchiveRecoverReqDTO requestParam) {
-        remoteShortLinkService.recoverShortLink(requestParam);
+        requestParam.setUid(UserContext.getUserId());
+        shortLinkFeignClient.recoverShortLink(requestParam);
         return Results.success();
     }
 
     @PutMapping("/delete")
     public Result<Void> archiveRemove(@RequestBody ArchiveRemoveReqDTO requestParam) {
-        remoteShortLinkService.archiveRemove(requestParam);
+        requestParam.setUid(UserContext.getUserId());
+        shortLinkFeignClient.archiveRemove(requestParam);
         return Results.success();
     }
 }

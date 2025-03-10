@@ -10,6 +10,12 @@ import lombok.Data;
 @Data
 public class ShortLinkPageReqDTO extends Page<ShortLinkDO> {
 
+
+    /**
+     * 用户id
+     */
+    private Long uid;
+
     /**
      * 分组标识
      */
