@@ -14,23 +14,23 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 
 @RestController
-@RequestMapping("/api/v1/short_link/stats")
+@RequestMapping("/api/v1/short_link/project")
 @RequiredArgsConstructor
 public class ShortLinkStatsController {
 
     private final ShortLinkStatsService shortLinkStatsService;
 
-    @GetMapping("/daily_stats")
+    @GetMapping("/stats/daily_stats")
     public ShortLinkDailyStatsRespDTO dailyStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
         return shortLinkStatsService.getDailyStats(shortUrl, beginDate, endDate);
     }
 
-    @GetMapping("/chart_stats")
+    @GetMapping("/stats/chart_stats")
     public ShortLinkChartStatsRespDTO chartStats(String shortUrl, LocalDate beginDate, LocalDate endDate) {
         return shortLinkStatsService.getChartStats(shortUrl, beginDate, endDate);
     }
 
-    @GetMapping("/log_stats")
+    @GetMapping("/stats/log_stats")
     public Page<ShortLinkLogPageRespDTO> logStats(ShortLinkLogPageReqDTO requestParam) {
         return shortLinkStatsService.getLogStats(requestParam);
     }

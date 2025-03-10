@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
  * 回收站管理控制层
  */
 @RestController
-@RequestMapping("/api/v1/short_link")
+@RequestMapping("/api/v1/short_link/project")
 @RequiredArgsConstructor
 public class ArchiveController {
 

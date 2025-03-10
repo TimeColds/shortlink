@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/short_link")
+@RequestMapping("/api/v1/short_link/project")
 public class ShortLinkController {
 
     private final ShortLinkService shortLinkService;

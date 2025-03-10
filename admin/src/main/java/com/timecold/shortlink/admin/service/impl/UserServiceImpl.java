@@ -141,7 +141,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
             throw new ClientException("登录参数不能为空");
         }
         String loginKey = RedisKeyConstant.USER_LOGIN_KEY + requestParam.getUsername();
-        Boolean hasLogin = stringRedisTemplate.hasKey(loginKey);
         Map<Object, Object> hasLoginMap = stringRedisTemplate.opsForHash().entries(loginKey);
         if (MapUtils.isNotEmpty(hasLoginMap)) {
             stringRedisTemplate.expire(loginKey, 30L, TimeUnit.DAYS);
@@ -151,9 +150,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                     .orElseThrow(() -> new ClientException("用户登录错误"));
             return new UserLoginRespDTO(token);
         }
-        if (Boolean.TRUE.equals(hasLogin)) {
-            throw new ClientException("用户已登录");
-        }
         LambdaQueryWrapper<UserDO> queryWrapper = Wrappers.lambdaQuery(UserDO.class)
                 .eq(UserDO::getUsername, requestParam.getUsername())
                 .eq(UserDO::getPassword, requestParam.getPassword())
@@ -162,18 +158,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         if (userDO == null) {
             throw new ClientException("用户名或密码错误");
         }
-        String uuid = UUID.randomUUID().toString();
+        String token = UUID.randomUUID().toString();
         try {
             Map<String, Object> loginInfo = new HashMap<>();
             loginInfo.put("uid", userDO.getUid());
             loginInfo.put("username", userDO.getUsername());
-            loginInfo.put("realName", userDO.getRealName());
-            stringRedisTemplate.opsForHash().put(loginKey, uuid, objectMapper.writeValueAsString(loginInfo));
+            stringRedisTemplate.opsForHash().put(loginKey, token, objectMapper.writeValueAsString(loginInfo));
             stringRedisTemplate.expire(loginKey, 30L, TimeUnit.DAYS);
         } catch (Exception e) {
             throw new ClientException("登录失败，请稍后重试");
         }
-        return new UserLoginRespDTO(uuid);
+        return new UserLoginRespDTO(token);
     }
 
     @Override

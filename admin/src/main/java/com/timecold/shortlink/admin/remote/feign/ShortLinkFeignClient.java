@@ -19,7 +19,7 @@ public interface ShortLinkFeignClient {
      * @param requestParam 创建短链接请求参数
      * @return 短链接创建响应
      */
-    @PostMapping("/api/v1/short_link/create")
+    @PostMapping("/api/v1/short_link/project/create")
     ShortLinkCreateRespDTO createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam);
 
     /**
@@ -27,7 +27,7 @@ public interface ShortLinkFeignClient {
      *
      * @param requestParam 修改短链接请求参数
      */
-    @PutMapping("/api/v1/short_link/update")
+    @PutMapping("/api/v1/short_link/project/update")
     void updateShortLink(@RequestBody ShortLinkUpdateReqDTO requestParam);
 
     /**
@@ -36,7 +36,7 @@ public interface ShortLinkFeignClient {
      * @param requestParam 分页短链接请求参数
      * @return 查询短链接响应
      */
-    @GetMapping("/api/v1/short_link/page")
+    @GetMapping("/api/v1/short_link/project/page")
     Page<ShortLinkPageRespDTO> pageShortLink(@SpringQueryMap ShortLinkPageReqDTO requestParam);
 
     /**
@@ -44,7 +44,7 @@ public interface ShortLinkFeignClient {
      *
      * @return 每个分组内短链接数量响应
      */
-    @GetMapping("/api/v1/short_link/count")
+    @GetMapping("/api/v1/short_link/project/count")
     List<ShortLinkGroupCountQueryRespDTO> listGroupShortLinkCount(@RequestParam Long uid);
 
     /**
@@ -53,7 +53,7 @@ public interface ShortLinkFeignClient {
      * @param url 目标网站地址
      * @return 网站标题
      */
-    @GetMapping("/api/v1/short_link/title")
+    @GetMapping("/api/v1/short_link/project/title")
     String getTitleByUrl(@RequestParam String url);
 
     /**
@@ -61,7 +61,7 @@ public interface ShortLinkFeignClient {
      *
      * @param requestParam 归档短链接请求参数
      */
-    @PutMapping("/api/v1/short_link/archive")
+    @PutMapping("/api/v1/short_link/project/archive")
     void archiveShortLink(@RequestBody ArchiveReqDTO requestParam);
 
     /**
@@ -71,7 +71,7 @@ public interface ShortLinkFeignClient {
      * @param current 当前页
      * @return
      */
-    @GetMapping("/api/v1/short_link/archived_links")
+    @GetMapping("/api/v1/short_link/project/archived_links")
     Page<ShortLinkPageRespDTO> pageArchivedShortLink(@RequestParam Long size,
                                                      @RequestParam Long current,
                                                      @RequestParam Long uid);
@@ -81,7 +81,7 @@ public interface ShortLinkFeignClient {
      *
      * @param requestParam 恢复归档的短链接请求参数
      */
-    @PutMapping("/api/v1/short_link/archive_recover")
+    @PutMapping("/api/v1/short_link/project/archive_recover")
     void recoverShortLink(@RequestBody ArchiveRecoverReqDTO requestParam);
 
     /**
@@ -89,20 +89,20 @@ public interface ShortLinkFeignClient {
      *
      * @param requestParam 删除归档的短链接请求参数
      */
-    @PutMapping("/api/v1/short_link/delete")
+    @PutMapping("/api/v1/short_link/project/delete")
     void archiveRemove(@RequestBody ArchiveRemoveReqDTO requestParam);
 
-    @GetMapping("/api/v1/short_link/stats/daily_stats")
+    @GetMapping("/api/v1/short_link/project/stats/daily_stats")
     ShortLinkDailyStatsRespDTO getDailyStats(@RequestParam String shortUrl,
                                              @RequestParam LocalDate beginDate,
                                              @RequestParam LocalDate endDate);
 
-    @GetMapping("/api/v1/short_link/stats/chart_stats")
+    @GetMapping("/api/v1/short_link/project/stats/chart_stats")
     ShortLinkChartStatsRespDTO getChartStats(@RequestParam String shortUrl,
                                              @RequestParam LocalDate beginDate,
                                              @RequestParam LocalDate endDate);
 
-    @GetMapping("/api/v1/short_link/stats/log_stats")
+    @GetMapping("/api/v1/short_link/project/stats/log_stats")
     Page<ShortLinkLogPageRespDTO> getLogStats(@SpringQueryMap ShortLinkLogPageReqDTO requestParam);
 
 }
