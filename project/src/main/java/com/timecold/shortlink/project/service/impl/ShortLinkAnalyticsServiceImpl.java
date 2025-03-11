@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timecold.shortlink.project.common.convention.exception.ServiceException;
 import com.timecold.shortlink.project.dao.entity.LinkLogStatsDO;
-import com.timecold.shortlink.project.dao.mapper.LinkLogStatsMapper;
 import com.timecold.shortlink.project.dto.biz.ShortLinkStatsRecordDTO;
 import com.timecold.shortlink.project.service.ShortLinkAnalyticsService;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +38,6 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
     private final UserAgentAnalyzer userAgentAnalyzer;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final LinkLogStatsMapper linkLogStatsMapper;
 
     @Value("${gaode.api-key}")
     private String amapKey;
@@ -143,22 +141,6 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
         stringRedisTemplate.opsForStream().add(LOG_STATS_STREAM, statsLogEvent);
     }
 
-    private void processAccessLog() {
-
-    }
-
-    private void processDailyStats() {
-
-    }
-
-    private void processDeviceStats() {
-
-    }
-
-    private void processLocationStats() {
-
-    }
-
     private String obtainLocation(String ip) {
         String amapApi = "https://restapi.amap.com/v3/ip";
         String finalUrl = UriComponentsBuilder.fromHttpUrl(amapApi)
@@ -170,7 +152,7 @@ public class ShortLinkAnalyticsServiceImpl implements ShortLinkAnalyticsService 
             String infoCode = (String) map.get("infocode");
             if (infoCode.equals("10000")) {
                 if (map.get("province") == null || map.get("city") == null) {
-                    return "中国";
+                    return "未知";
                 }
                 return "中国-" + map.get("province") + "-" + map.get("city");
             } else {

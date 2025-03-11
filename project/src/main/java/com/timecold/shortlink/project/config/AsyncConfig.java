@@ -21,13 +21,13 @@ public class AsyncConfig {
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         // 根据服务器CPU核心数配置
-        int corePoolSize = Runtime.getRuntime().availableProcessors() * 2;
+        int corePoolSize = Runtime.getRuntime().availableProcessors();
         //配置核心线程数
-        executor.setCorePoolSize(corePoolSize);
+        executor.setCorePoolSize(corePoolSize * 2);
         //配置最大线程数
-        executor.setMaxPoolSize(corePoolSize * 2);
+        executor.setMaxPoolSize(corePoolSize * 4);
         //配置队列大小
-        executor.setQueueCapacity(200);
+        executor.setQueueCapacity(500);
         //线程池维护线程所允许的空闲时间
         executor.setKeepAliveSeconds(30);
         //配置线程池中的线程的名称前缀
