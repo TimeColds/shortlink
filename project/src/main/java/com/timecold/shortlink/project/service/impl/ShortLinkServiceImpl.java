@@ -214,7 +214,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         if (updateRow == 0) {
             throw new ClientException("更新失败");
         }
-        updateUrlInfoCache(RedisKeyConstant.LINK_GOTO_KEY + requestParam.getShortUrl(), requestParam.getOriginUrl(), requestParam.getValidDate());
+        if(!Objects.equals(requestParam.getOriginGid(), requestParam.getGid())
+        || !Objects.equals(requestParam.getOriginUrl(), requestParam.getOriginUrl())
+        || !Objects.equals(requestParam.getValidDate(), requestParam.getValidDate())) {
+            deleteUrlCache(requestParam.getShortUrl());
+        }
+
     }
 
     @Override
@@ -285,6 +290,20 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             return null;
         }
         return shortLinkDO;
+    }
+
+    /**
+     * 删除短链接相关的缓存
+     * @param shortUrl 短链接URL
+     */
+    private void deleteUrlCache(String shortUrl) {
+        try {
+            String gotoKey = RedisKeyConstant.LINK_GOTO_KEY + shortUrl;
+            stringRedisTemplate.delete(gotoKey);
+            log.info("短链接缓存删除成功, shortUrl: {}", shortUrl);
+        } catch (Exception e) {
+            log.error("短链接缓存删除失败, shortUrl: {}, 原因: {}", shortUrl, e.getMessage(), e);
+        }
     }
 
     private void updateUrlInfoCache(String gotoKey, String originUrl, Date vailDate) {
