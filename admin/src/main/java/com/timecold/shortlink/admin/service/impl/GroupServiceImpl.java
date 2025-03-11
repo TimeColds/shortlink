@@ -60,7 +60,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 .eq(GroupDO::getDelFlag, 0)
                 .orderByDesc(Arrays.asList(GroupDO::getSortOrder, GroupDO::getUpdateTime));
         List<GroupDO> groupDOList = baseMapper.selectList(queryWrapper);
-        List<ShortLinkGroupCountQueryRespDTO> countList = shortLinkFeignClient.listGroupShortLinkCount(UserContext.getUserId());
+        List<ShortLinkGroupCountQueryRespDTO> countList = shortLinkFeignClient.listGroupShortLinkCount(UserContext.getUserId()).getData();
         Map<Long, Long> gidCountMap = countList.stream().collect(Collectors.toMap(
                 ShortLinkGroupCountQueryRespDTO::getGid,
                 ShortLinkGroupCountQueryRespDTO::getShortLinkCount));

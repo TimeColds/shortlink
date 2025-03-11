@@ -36,7 +36,7 @@ public class ArchiveController {
      */
     @GetMapping("/archived_links")
     public Result<Page<ShortLinkPageRespDTO>> pageArchivedShortLink(@RequestParam Long size, @RequestParam Long current) {
-        return Results.success(shortLinkFeignClient.pageArchivedShortLink(size, current, UserContext.getUserId()));
+        return shortLinkFeignClient.pageArchivedShortLink(size, current, UserContext.getUserId());
     }
 
     @PutMapping("/archive_recover")

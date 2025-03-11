@@ -65,28 +65,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     }
 
     @Override
-    public Boolean hasUserName(String username) {
+    public Boolean isUsernameAvailable(String username) {
         return !userRegisterCachePenetrationBloomFilter.contains(username);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void register(UserRegisterReqDTO requestParam) {
+        String username = requestParam.getUsername();
         // 初步布隆过滤器检查
-        if (!hasUserName(requestParam.getUsername())) {
+        if (!isUsernameAvailable(username)) {
             throw new ClientException(UserErrorCodeEnum.USER_EXIST);
         }
-
-        RLock lock = redissonClient.getLock(RedisKeyConstant.USER_REGISTER_LOCK_KEY + requestParam.getUsername());
+        RLock lock = redissonClient.getLock(RedisKeyConstant.USER_REGISTER_LOCK_KEY + username);
         try {
             // 尝试获取锁，设置等待时间和锁持有时间以避免死锁
             boolean isLockAcquired = lock.tryLock(100, 10000, TimeUnit.MILLISECONDS);
             if (!isLockAcquired) {
                 // 锁获取失败后二次检查数据库
                 UserDO existingUser = baseMapper.selectOne(new LambdaQueryWrapper<UserDO>()
-                        .eq(UserDO::getUsername, requestParam.getUsername()));
+                        .eq(UserDO::getUsername, username));
                 if (existingUser != null) {
-                    userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
+                    userRegisterCachePenetrationBloomFilter.add(username);
                     throw new ClientException(UserErrorCodeEnum.USER_EXIST);
                 } else {
                     throw new ClientException(UserErrorCodeEnum.USER_REGISTER_CONFLICT);
@@ -95,7 +95,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
             try {
                 // 双重检查：获取锁后再次验证用户名
-                if (!hasUserName(requestParam.getUsername())) {
+                if (!isUsernameAvailable(username)) {
                     throw new ClientException(UserErrorCodeEnum.USER_EXIST);
                 }
 
@@ -110,18 +110,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                 }
 
                 // 更新布隆过滤器并创建默认分组
-                userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
                 groupService.saveGroup(uid, "默认分组");
+                userRegisterCachePenetrationBloomFilter.add(username);
             } catch (DuplicateKeyException e) {
                 // 处理唯一键冲突并更新布隆过滤器
-                userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
+                userRegisterCachePenetrationBloomFilter.add(username);
                 throw new ClientException(UserErrorCodeEnum.USER_EXIST);
-            } finally {
-                lock.unlock();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ClientException(UserErrorCodeEnum.USER_REGISTER_ERROR);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
     }
 

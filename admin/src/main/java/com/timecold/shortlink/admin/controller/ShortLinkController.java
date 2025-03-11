@@ -29,7 +29,7 @@ public class ShortLinkController {
     @PostMapping("/create")
     public Result<ShortLinkCreateRespDTO> createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam) {
         requestParam.setUid(UserContext.getUserId());
-        return Results.success(shortLinkFeignClient.createShortLink(requestParam));
+        return shortLinkFeignClient.createShortLink(requestParam);
     }
 
     /**
@@ -48,7 +48,7 @@ public class ShortLinkController {
     @GetMapping("/page")
     public Result<Page<ShortLinkPageRespDTO>> pageShortLink(ShortLinkPageReqDTO requestParam) {
         requestParam.setUid(UserContext.getUserId());
-        return Results.success(shortLinkFeignClient.pageShortLink(requestParam));
+        return shortLinkFeignClient.pageShortLink(requestParam);
     }
 
     /**
@@ -56,6 +56,6 @@ public class ShortLinkController {
      */
     @GetMapping("/title")
     public Result<String> getTitleByUrl(@RequestParam("url") String url) {
-        return Results.success(shortLinkFeignClient.getTitleByUrl(url));
+        return shortLinkFeignClient.getTitleByUrl(url);
     }
 }

@@ -25,6 +25,9 @@ public class ShortLinkLogStatsConsumer implements StreamListener<String, MapReco
 
     @Override
     public void onMessage(MapRecord<String, String, String> message) {
+        if (true) {
+            throw new RuntimeException("test");
+        }
         try {
             Map<String, String> value = message.getValue();
             String linkStatsLog = value.get("linkStatsLog");
